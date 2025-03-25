@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.flocka"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.flocka"
@@ -55,6 +55,9 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.espresso.core)
+    implementation ("androidx.compose.ui:ui-text-google-fonts:1.7.8")
+    implementation ("androidx.compose.material:material-icons-extended:1.7.8")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
