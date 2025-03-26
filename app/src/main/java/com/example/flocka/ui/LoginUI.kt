@@ -2,8 +2,10 @@ package com.example.flocka.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -119,32 +121,41 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
-                    .offset(y = 12.dp)
+                    .offset(y = 22.dp)
             ){
-                OutlinedTextField(
+                BasicTextField(
                     value = email,
                     onValueChange = { email = it },
-                    placeholder = {
-                        Text(
-                            "Enter your email",
-                            fontSize = 13.sp,
-                            fontFamily = sansationFontFamily,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFFD1D0D0)
-                        )},
                     singleLine = true,
+                    textStyle = TextStyle(
+                        fontSize = 13.sp,
+                        fontFamily = sansationFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 43.dp),
-                    shape = RoundedCornerShape(15.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.DarkGray,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Gray,
-                        unfocusedIndicatorColor = Color.LightGray
-                    ),
+                        .height(43.dp)
+                        .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = 24.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (email.isEmpty()) {
+                                Text(
+                                    text = "Enter your email",
+                                    fontSize = 13.sp,
+                                    fontFamily = sansationFontFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFFD1D0D0)
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
                 )
 
                 Box(
@@ -162,39 +173,48 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
-                    .offset(y = 20.dp)
+                    .offset(y = 35.dp)
             ){
-                OutlinedTextField(
+                BasicTextField(
                     value = password,
-                    onValueChange = { password = it },
-                    placeholder = {
-                        Text(
-                            "Enter your password",
-                            fontSize = 13.sp,
-                            fontFamily = sansationFontFamily,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFFD1D0D0)
-                        ) },
+                    onValueChange =  {password = it},
                     singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(15.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.DarkGray,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Gray,
-                        unfocusedIndicatorColor = Color.LightGray
+                    textStyle = TextStyle(
+                        fontSize = 13.sp,
+                        fontFamily = sansationFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 43.dp),
+                        .height(43.dp)
+                        .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = 24.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (password.isEmpty()) {
+                                Text(
+                                    text = "Enter your password",
+                                    fontSize = 13.sp,
+                                    fontFamily = sansationFontFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color(0xFFD1D0D0)
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
                 )
 
                 Box(
@@ -217,7 +237,7 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp, vertical = 10.dp)
-                    .offset(y = 20.dp),
+                    .offset(y = 30.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -266,6 +286,7 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
+                    .offset(y = 20.dp)
                     .height(50.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -282,11 +303,12 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(39.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .offset(y = 40.dp)
                     .padding(horizontal = 33.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -310,18 +332,18 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(35.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().offset(y = 15.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
                 IconButton(onClick = {}) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google),
                         contentDescription = "Google",
-                        tint = Color.Unspecified, // Keeps original icon colors
-                        modifier = Modifier.size(40.dp)
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(30.dp)
                     )
                 }
 
@@ -332,7 +354,7 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                         painter = painterResource(id = R.drawable.ic_facebook),
                         contentDescription = "Facebook",
                         tint = Color.Unspecified,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(30.dp)
                     )
                 }
 
@@ -343,16 +365,17 @@ fun LoginUI(onLoginClick: (String, String) -> Unit) {
                         painter = painterResource(id = R.drawable.ic_x), // Assuming X logo is stored as ic_x
                         contentDescription = "X (Twitter)",
                         tint = Color.Unspecified,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(30.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .offset(y = 24.dp),
                 horizontalArrangement = Arrangement.Center
             ){
                 Text(
