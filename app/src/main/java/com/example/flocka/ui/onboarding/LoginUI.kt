@@ -1,15 +1,12 @@
-package com.example.flocka.ui
+package com.example.flocka.ui.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,8 +17,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.googlefonts.GoogleFont.Provider
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -31,14 +26,14 @@ import androidx.compose.ui.unit.sp
 import com.example.flocka.R
 
 @Composable
-fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
-    var username by remember { mutableStateOf("") }
+fun LoginUI(onLoginClick: (String, String) -> Unit, onSignUpClick: () -> Unit,  onBackClick: () -> Unit,) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var rememberMe by remember { mutableStateOf(false) }
 
-    val provider = GoogleFont.Provider(
+    val provider = Provider(
         providerAuthority = "com.google.android.gms.fonts",
         providerPackage = "com.google.android.gms",
         certificates = R.array.com_google_android_gms_fonts_certs
@@ -78,7 +73,7 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 .padding(top = 25.dp, start = 2.dp)
                 .size(width = 100.dp, height = 40.dp)
         ){
-            IconButton(onClick = {}) {
+            IconButton(onClick = onBackClick) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_rectangle),
                     contentDescription = "rectangle",
@@ -109,7 +104,7 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                     .size(100.dp)
             )
             Text(
-                "Get Started",
+                "Welcome Back",
                 fontSize = 26.sp,
                 fontFamily = alexandriaFontFamily,
                 color = Color(0xFF172D9D),
@@ -122,65 +117,7 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
-                    .offset(y = 12.dp)
-            ){
-                BasicTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        fontSize = 13.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(43.dp)
-                        .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(start = 24.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (username.isEmpty()) {
-                                Text(
-                                    text = "Enter your username",
-                                    fontSize = 13.sp,
-                                    fontFamily = sansationFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color(0xFFD1D0D0)
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-
-                Box(
-                    modifier = Modifier
-                        .offset(x = 24.dp, y = (-6).dp)
-                        .background(color = Color.White)
-                        .padding(start = 4.dp, end = 3.dp)
-                ) {
-                    Text(
-                        "Username",
-                        fontSize = 11.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 33.dp)
-                    .offset(y = 12.dp)
+                    .offset(y = 22.dp)
             ){
                 BasicTextField(
                     value = email,
@@ -238,7 +175,7 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
-                    .offset(y = 20.dp)
+                    .offset(y = 35.dp)
             ){
                 BasicTextField(
                     value = password,
@@ -292,9 +229,44 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
 
             }
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 33.dp, vertical = 10.dp)
+                    .offset(y = 30.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = { rememberMe = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF172D9D),
+                            uncheckedColor = Color.Gray,
+                            checkmarkColor = Color(0xFFFF7F00)
+                        )
+                    )
+                    Text(
+                        "Remember Me",
+                        fontSize = 13.sp,
+                        fontFamily = sansationFontFamily,
+                        color = Color(0xFFB8B8B8)
+                    )
+                }
+                Text(
+                    "Forgot Password?",
+                    color = Color(0xFFFF7F00),
+                    fontSize = 13.sp,
+                    fontFamily = sansationFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .offset(x = (-13).dp, y = 17.5.dp)
+                )
+            }
+
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(errorMessage, color = Color.Red, fontSize = 14.sp)
+                Text(errorMessage, color = Color.Red, fontSize = 12.sp, fontFamily = sansationFontFamily, modifier = Modifier.offset(y=15.dp))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -302,7 +274,7 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
             Button(
                 onClick = {
                     if (email.isNotBlank() && password.isNotBlank()) {
-                        onRegisterClick(email, password)
+                        onLoginClick(email, password)
                     } else {
                         errorMessage = "Email and Password cannot be empty"
                     }
@@ -310,8 +282,8 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
-                    .height(50.dp)
-                    .offset(y = 30.dp),
+                    .offset(y = 20.dp)
+                    .height(50.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF172D9D),
@@ -320,20 +292,20 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
 
             ) {
                 Text(
-                    "Sign Up",
+                    "Log In",
                     fontSize = 20.sp,
                     fontFamily = sansationFontFamily,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(39.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 33.dp)
-                    .offset(y = 27.dp),
+                    .offset(y = 40.dp)
+                    .padding(horizontal = 33.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Divider(
@@ -356,17 +328,19 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(35.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth().offset(y = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = 15.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
                 IconButton(onClick = {}) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google),
                         contentDescription = "Google",
-                        tint = Color.Unspecified, // Keeps original icon colors
+                        tint = Color.Unspecified,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -394,16 +368,16 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = 25.dp),
+                    .offset(y = 24.dp),
                 horizontalArrangement = Arrangement.Center
             ){
                 Text(
-                    "Already have an account?",
+                    "Don't have an account?",
                     color = Color(0xFF172D9D),
                     fontFamily = sansationFontFamily,
                     fontSize = 12.sp
@@ -412,11 +386,13 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
                 Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
-                    "Log In",
+                    "Sign Up",
                     color = Color(0xFFFF7F00),
                     fontFamily = sansationFontFamily,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .clickable { onSignUpClick() }
                 )
             }
         }
@@ -425,6 +401,10 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit) {
 
 @Preview(showBackground = true)
 @Composable
-fun RegisterUIPreview() {
-    RegisterUI { _, _ -> }
+fun LoginUIPreview() {
+    LoginUI (
+        onLoginClick= {_, _ ->},
+        onSignUpClick = { },
+        onBackClick = { }
+    )
 }
