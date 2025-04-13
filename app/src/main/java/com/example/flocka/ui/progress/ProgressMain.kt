@@ -33,6 +33,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.rememberNavController
 import com.example.flocka.R
 import com.example.flocka.ui.progress.AddTaskDialog
+import com.example.flocka.ui.quiz.QuizDelayDialog
+import com.example.flocka.ui.quiz.QuizDialogType
+import com.example.flocka.ui.quiz.QuizLetsStartDialog
+import com.example.flocka.ui.quiz.QuizPromptDialog
+import com.example.flocka.ui.quiz.QuizQuestionDialog
+import com.example.flocka.ui.quiz.QuizStateManager
 import com.yourpackage.ui.components.AppBackground
 import com.yourpackage.ui.components.BottomNavBar
 import com.yourpackage.ui.components.sansationFontFamily
@@ -41,6 +47,8 @@ import com.yourpackage.ui.screens.BaseScreen
 @Composable
 fun ProgressMain() {
     var showDialog by remember { mutableStateOf(false) }
+
+    val quizManager = remember { QuizStateManager() }
 
     var isChecked by remember { mutableStateOf(false) }
     BaseScreen {
@@ -158,8 +166,70 @@ fun ProgressMain() {
                                 painter = painterResource(id = R.drawable.ic_streak),
                                 contentDescription = "Background Image",
                                 modifier = Modifier
+                                    .clickable {
+                                        quizManager.showPrompt()
+                                    }
                                     .size(50.dp),
                             )
+
+                            when (quizManager.currentDialog) {
+                                QuizDialogType.PROMPT -> {
+                                    Dialog(onDismissRequest = { quizManager.dismissDialog() }) {
+                                        QuizPromptDialog(
+                                            onDismiss = { quizManager.dismissDialog() },
+                                            onStartQuiz = { quizManager.showLetsStart() },
+                                            onDelayQuiz = { quizManager.showDelayOption() }
+                                        )
+                                    }
+                                }
+
+                                QuizDialogType.DELAY_OPTION -> {
+                                    Dialog(onDismissRequest = { quizManager.dismissDialog() }) {
+                                        QuizDelayDialog(
+                                            onDismiss = { quizManager.dismissDialog() },
+                                            onRemindLater = { quizManager.showPrompt() },
+                                            onCancel = { quizManager.dismissDialog() }
+                                        )
+                                    }
+                                }
+
+                                QuizDialogType.LETS_START -> {
+                                    Dialog(onDismissRequest = { quizManager.dismissDialog() }) {
+                                        QuizLetsStartDialog(
+                                            onDismiss = { quizManager.dismissDialog() },
+                                            onBegin = { quizManager.startQuiz() }
+                                        )
+                                    }
+                                }
+
+                                QuizDialogType.QUESTION -> {
+                                    Dialog(onDismissRequest = { quizManager.dismissDialog() }) {
+                                        QuizQuestionDialog(
+                                            question = quizManager.getCurrentQuestion().toString(),
+                                            options = quizManager.getCurrentOptions(),
+                                            onAnswerSelected = {
+                                                // You might want to map back from the option to the index
+                                                quizManager.selectedAnswerIndex = quizManager.getCurrentOptions().indexOf(it)
+                                                quizManager.showAnswer()
+                                            },
+                                            onDismiss = { quizManager.dismissDialog() }
+                                        )
+                                    }
+                                }
+
+                                QuizDialogType.ANSWER -> {
+                                    Dialog(onDismissRequest = { quizManager.dismissDialog() }) {
+                                        QuizAnswerDialog(
+                                            questionIndex = quizManager.currentQuestionIndex,
+                                            selectedAnswer = quizManager.selectedAnswerIndex,
+                                            onNext = { quizManager.nextQuestion() }
+                                        )
+                                    }
+                                }
+
+                                else -> {}
+                            }
+
                             Text(
                                 "X",
                                 color = Color.White,
@@ -303,6 +373,11 @@ fun ProgressMain() {
         }
     }
 
+}
+
+@Composable
+fun QuizAnswerDialog(questionIndex: Int, selectedAnswer: Int, onNext: () -> Unit) {
+    TODO("Not yet implemented")
 }
 
 @Preview(showBackground = true)
