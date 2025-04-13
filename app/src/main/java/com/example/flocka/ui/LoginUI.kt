@@ -28,7 +28,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
-
 @Composable
 fun LoginUI(onLoginClick: (String, String) -> Unit) {
     var email by remember { mutableStateOf("") }

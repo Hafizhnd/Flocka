@@ -58,7 +58,9 @@ dependencies {
     implementation(libs.androidx.espresso.core)
     implementation ("androidx.compose.ui:ui-text-google-fonts:1.7.8")
     implementation ("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("com.google.accompanist:accompanist-flowlayout:0.30.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }
