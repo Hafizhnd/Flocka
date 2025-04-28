@@ -32,7 +32,7 @@ sealed class BottomNavItem(
 ) {
     object Home : BottomNavItem("home", R.drawable.ic_home, R.drawable.ic_no_home, "Home")
     object Chat : BottomNavItem("chat", R.drawable.ic_groupchat, R.drawable.ic_no_groupchat, "Chat")
-    object Community : BottomNavItem("community", R.drawable.ic_community, R.drawable.ic_no_community, "Community")
+    object People : BottomNavItem("people", R.drawable.ic_community, R.drawable.ic_no_community, "People")
     object Progress : BottomNavItem("progress", R.drawable.ic_progress, R.drawable.ic_no_progress, "Progress")
     object Profile : BottomNavItem("profile", R.drawable.ic_profile, R.drawable.ic_no_profile, "Profile")
 }
@@ -40,7 +40,7 @@ sealed class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem.Home,
     BottomNavItem.Chat,
-    BottomNavItem.Community,
+    BottomNavItem.People,
     BottomNavItem.Progress,
     BottomNavItem.Profile
 )

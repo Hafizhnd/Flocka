@@ -11,8 +11,6 @@ import com.example.flocka.ui.chat.components.ChatRow
 import com.example.flocka.ui.chat.components.ChatSearchBar
 import com.example.flocka.ui.chat.components.ChattingRow
 import com.example.flocka.ui.chat.domain.chatModalList
-import com.yourpackage.ui.components.TopBar
-import com.yourpackage.ui.components.BottomNavBar
 
 @Composable
 fun ChatUIScreen(
@@ -23,16 +21,10 @@ fun ChatUIScreen(
         modifier = modifier
             .fillMaxSize()
     ) {
-        // Bagian atas: chat list
         ChatRow(
             modifier = Modifier
-                .weight(1f), // Supaya isi chat mengisi ruang di atas
-            header = {
-                TopBar(
-                    username = "Benny Jeans",
-                    subtitle = "UI / UX Enthusiast"
-                )
-            },
+                .fillMaxSize(),
+            header = {}, // Removed TopBar
             searchBar = {
                 ChatSearchBar()
             },
@@ -42,9 +34,6 @@ fun ChatUIScreen(
                 }
             }
         )
-
-        // Bottom NavBar di paling bawah
-        BottomNavBar(navController = navController)
     }
 }
 

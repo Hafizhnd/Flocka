@@ -208,7 +208,6 @@ fun ProgressMain() {
                                             question = quizManager.getCurrentQuestion().toString(),
                                             options = quizManager.getCurrentOptions(),
                                             onAnswerSelected = {
-                                                // You might want to map back from the option to the index
                                                 quizManager.selectedAnswerIndex = quizManager.getCurrentOptions().indexOf(it)
                                                 quizManager.showAnswer()
                                             },

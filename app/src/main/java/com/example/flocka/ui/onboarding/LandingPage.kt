@@ -53,7 +53,6 @@ fun LandingPage(onLoginClick: () -> Unit, onSignUpClick: () -> Unit){
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer { scaleX =1.1f }
-                .height(height = 409.dp)
         )
 
         Box(

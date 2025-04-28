@@ -11,92 +11,38 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.yourpackage.ui.components.BottomNavBar
 import com.example.flocka.R
+import com.example.flocka.navigation.MainNavGraph
+import com.example.flocka.profile.ui.ProfileScreen
+import com.example.flocka.ui.PeoplePage
+import com.example.flocka.ui.chat.ChatUIScreen
+import com.example.flocka.ui.event_workspace.EventUI
+import com.example.flocka.ui.event_workspace.WorkspaceUI
+import com.example.flocka.ui.home.HomePage
 import com.yourpackage.ui.components.TopBar
 import com.yourpackage.ui.progress.ProgressMain
 
 @Composable
 fun MainScreen() {
-    // Set up the navigation controller
     val navController = rememberNavController()
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
-    // Create a simple layout for the MainScreen
     Scaffold(
         topBar = {
-            TopBar(
-                username = "John Doe",
-                subtitle = "Mobile Developer Enthusiast"
-            )
+            if (currentRoute != "people" && currentRoute != "profile") {
+                TopBar(username = "John Doe", subtitle = "Mobile Developer Enthusiast")
+            }
         },
         bottomBar = { BottomNavBar(navController = navController) }
     ) { paddingValues ->
         BaseScreen {
-            NavHost(
-                navController = navController,
-                startDestination = "home",
-                modifier = Modifier.padding(paddingValues)
-            ) {
-                // Define your different screen destinations
-                composable("home") { HomeScreen() }
-                composable("chat") { ChatScreen() }
-                composable("community") { CommunityScreen() }
-                composable("progress") { ProgressMain() }
-                composable("profile") { ProfileScreen() }
-            }
+            MainNavGraph(navController = navController, paddingValues = paddingValues)
         }
     }
 }
-
-@Composable
-fun HomeScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Home Screen")
-    }
-}
-
-@Composable
-fun ChatScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Chat Screen")
-    }
-}
-
-@Composable
-fun CommunityScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Community Screen")
-    }
-}
-
-@Composable
-fun ProfileScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Profile Screen")
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
