@@ -21,9 +21,8 @@ import com.example.flocka.R
 import com.google.accompanist.flowlayout.FlowRow
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true)
 @Composable
-fun EditProfileScreen() {
+fun EditProfileScreen(onBackClick: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
@@ -47,7 +46,7 @@ fun EditProfileScreen() {
                 .background(Color(0xFFF4F9FF))
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            IconButton(onClick = { /* Handle back navigation */ }) {
+            IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
@@ -208,4 +207,10 @@ fun EditProfileScreen() {
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+@Preview
+@Composable
+fun EditProfilePreview(){
+    EditProfileScreen ( onBackClick = {} )
 }

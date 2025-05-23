@@ -23,9 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
 
-@Preview(showBackground = true)
 @Composable
-fun ArchivedTicketScreen() {
+fun ArchivedTicketScreen(onBackClick: () -> Unit) {
     var selectedTab by remember { mutableStateOf("Archived") }
 
     Column(
@@ -36,11 +35,14 @@ fun ArchivedTicketScreen() {
     ) {
         // Top Bar
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint = Color(0xFF002366)
-            )
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF002366)
+                )
+            }
+
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 "Order",
@@ -173,4 +175,10 @@ fun ArchivedTicketCard(title: String, location: String, date: String, time: Stri
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ArchivedTicketPreview(){
+    ArchivedTicketScreen (onBackClick = {})
 }

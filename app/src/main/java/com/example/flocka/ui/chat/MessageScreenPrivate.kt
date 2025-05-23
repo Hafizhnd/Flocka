@@ -13,9 +13,7 @@ import com.example.flocka.ui.chat.domain.privateChat
 
 @Composable
 fun MessageScreenPrivate (
-    messages: List<Message>,
-    title: String,
-    subtitle: String
+    messages: List<Message>
 ) {
     var chatMessages by remember { mutableStateOf(messages) }
 
@@ -24,11 +22,6 @@ fun MessageScreenPrivate (
             .fillMaxSize()
             .background(Color(0xFFEDF1F6))
     ) {
-        MessageHeader(
-            username = title,
-            subtitle = subtitle,
-            onBackClick = { /* TODO: Back action */ }
-        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -63,8 +56,6 @@ fun MessageScreenPrivate (
 @Composable
 fun PreviewMessageScreenPrivate() {
     MessageScreenPrivate(
-        messages = privateChat.messages,
-        title = privateChat.title,
-        subtitle = "UI Designer"
+        messages = privateChat.messages
     )
 }

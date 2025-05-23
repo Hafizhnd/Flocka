@@ -23,6 +23,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.flocka.R
+import com.example.flocka.ui.components.BluePrimary
+import com.example.flocka.ui.components.sansationFontFamily
 
 sealed class BottomNavItem(
     val route: String,
@@ -31,8 +33,8 @@ sealed class BottomNavItem(
     val contentDescription: String
 ) {
     object Home : BottomNavItem("home", R.drawable.ic_home, R.drawable.ic_no_home, "Home")
-    object Chat : BottomNavItem("chat", R.drawable.ic_groupchat, R.drawable.ic_no_groupchat, "Chat")
-    object People : BottomNavItem("people", R.drawable.ic_community, R.drawable.ic_no_community, "People")
+    object Chat : BottomNavItem("chat", R.drawable.ic_chat, R.drawable.ic_no_chat, "Chat")
+    object People : BottomNavItem("people", R.drawable.ic_people, R.drawable.ic_no_people, "People")
     object Progress : BottomNavItem("progress", R.drawable.ic_progress, R.drawable.ic_no_progress, "Progress")
     object Profile : BottomNavItem("profile", R.drawable.ic_profile, R.drawable.ic_no_profile, "Profile")
 }
@@ -49,20 +51,10 @@ val bottomNavItems = listOf(
 fun BottomNavBar(navController: NavController) {
     val navBackStackEntry = navController.currentBackStackEntryAsState()
 
-    val sansationFontFamily = FontFamily(
-        androidx.compose.ui.text.font.Font(R.font.sansation_bold, FontWeight.Bold),
-        androidx.compose.ui.text.font.Font(R.font.sansation_bold_italic, FontWeight.Bold, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_italic, FontWeight.Normal, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_light, FontWeight.Light),
-        androidx.compose.ui.text.font.Font(R.font.sansation_light_italic, FontWeight.Light, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_regular, FontWeight.Normal)
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(79.dp)
-            .shadow(15.dp, RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
             .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
             .background(
                 color = Color.White,
@@ -78,7 +70,8 @@ fun BottomNavBar(navController: NavController) {
                 NavigationBarItem(
                     selected = selected,
                     onClick = {
-                        if (!selected) {
+                        val currentRoute = navBackStackEntry.value?.destination?.route
+                        if (currentRoute != item.route) {
                             navController.navigate(item.route) {
                                 popUpTo(navController.graph.startDestinationId) {
                                     saveState = true
@@ -103,7 +96,7 @@ fun BottomNavBar(navController: NavController) {
 
                             Text(
                                 text = item.contentDescription,
-                                color = if (selected) Color(0xFF172D9D) else Color.Gray,
+                                color = if (selected) BluePrimary else Color.Gray,
                                 fontSize = 10.sp,
                                 fontFamily = sansationFontFamily,
                                 fontWeight = FontWeight.Bold,

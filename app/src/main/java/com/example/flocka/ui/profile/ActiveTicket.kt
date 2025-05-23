@@ -23,9 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
 
-@Preview(showBackground = true)
 @Composable
-fun TicketScreen() {
+fun TicketScreen( onBackClick: () -> Unit ) {
     var selectedTab by remember { mutableStateOf("Active") }
 
     Column(
@@ -35,11 +34,13 @@ fun TicketScreen() {
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Back",
-                tint = Color(0xFF002366)
-            )
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF002366)
+                )
+            }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 "Order",
@@ -191,4 +192,10 @@ fun TicketCard(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun ActiveTicketPreview(){
+    TicketScreen (onBackClick = {})
 }

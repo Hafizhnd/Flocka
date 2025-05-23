@@ -28,16 +28,16 @@ fun RootNavGraph(navController: NavHostController) {
         }
         composable("register") {
             RegisterUI(
-                onBackClick = { navController.navigate("landing") },
-                onRegisterClick = { _, _ -> navController.navigate("login") },
-                onLoginClick = { navController.navigate("login") }
+                onBackClick = { navController.popBackStack() },
+                onLoginClick = { navController.navigate("login") },
+                onRegisterSuccess = { _, _ -> navController.navigate("login") }
             )
         }
         composable("login") {
             LoginUI(
-                onBackClick = { navController.navigate("landing") },
-                onLoginClick = { _, _ -> navController.navigate("main") },
-                onSignUpClick = { navController.navigate("register") }
+                onBackClick = { navController.popBackStack() },
+                onSignUpClick = { navController.navigate("register") },
+                onLoginSuccess = { _, _ -> navController.navigate("main") }
             )
         }
         composable("main") {

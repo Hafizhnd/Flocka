@@ -32,7 +32,8 @@ val chatModalList = listOf(
         image = R.drawable.p_myadventure,
         message = "Adrian : logistik aman? ada yg kurang gk?",
         time = "21.20",
-        isOnline = false
+        isOnline = false,
+        isGroup = true // ✅ mark as group
     ),
     ChatModal(
         id = 3,
@@ -40,7 +41,8 @@ val chatModalList = listOf(
         image = R.drawable.p_team,
         message = "You : meeting jam 11, jangan lupa ya all!",
         time = "21.09",
-        isOnline = false
+        isOnline = false,
+        isGroup = true // ✅ mark as group
     ),
     ChatModal(
         id = 4,
@@ -56,7 +58,8 @@ val chatModalList = listOf(
         image = R.drawable.p_alumnus,
         message = "infokan reuni!!",
         time = "15.38",
-        isOnline = false
+        isOnline = false,
+        isGroup = true // ✅ mark as group
     ),
     ChatModal(
         id = 6,
@@ -80,6 +83,7 @@ val chatModalList = listOf(
         image = R.drawable.p_alchemist,
         message = "Hasan : ayo daftar lomba, ges..",
         time = "10.23",
-        isOnline = false
+        isOnline = false,
+        isGroup = true // ✅ mark as group
     )
 )
