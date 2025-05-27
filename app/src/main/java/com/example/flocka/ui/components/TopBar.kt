@@ -18,15 +18,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
+import com.example.flocka.ui.components.BluePrimary
+import com.example.flocka.ui.components.sansationFontFamily
 
-val sansationFontFamily = FontFamily(
-    androidx.compose.ui.text.font.Font(R.font.sansation_bold, FontWeight.Bold),
-    androidx.compose.ui.text.font.Font(R.font.sansation_bold_italic, FontWeight.Bold, FontStyle.Italic),
-    androidx.compose.ui.text.font.Font(R.font.sansation_italic, FontWeight.Normal, FontStyle.Italic),
-    androidx.compose.ui.text.font.Font(R.font.sansation_light, FontWeight.Light),
-    androidx.compose.ui.text.font.Font(R.font.sansation_light_italic, FontWeight.Light, FontStyle.Italic),
-    androidx.compose.ui.text.font.Font(R.font.sansation_regular, FontWeight.Normal)
-)
 
 @Composable
 fun TopBar(
@@ -37,7 +31,7 @@ fun TopBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(105.dp)
-            .background(Color(0xFF172D9D)),
+            .background(BluePrimary),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -47,7 +41,7 @@ fun TopBar(
                 .padding(start = 32.dp, top = 45.dp, bottom = 15.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_user),
+                painter = painterResource(id = R.drawable.img_avatar),
                 contentDescription = "User Profile Picture",
                 modifier = Modifier
                     .size(45.dp)
@@ -87,7 +81,7 @@ fun TopBar(
 @Preview(showBackground = true)
 @Composable
 fun TopBarPreview() {
-    Column(modifier = Modifier.background(Color(0xFF172D9D))) {
+    Column(modifier = Modifier.background(BluePrimary)) {
         TopBar(
             username = "John Doe",
             subtitle = "Mobile Developer Enthusiast"

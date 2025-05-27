@@ -33,19 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
-
-val alexandriaFontFamily = FontFamily(
-    androidx.compose.ui.text.font.Font(R.font.alexandria)
-)
-
-val sansationFontFamily = FontFamily(
-    androidx.compose.ui.text.font.Font(R.font.sansation_bold, FontWeight.Bold),
-    androidx.compose.ui.text.font.Font(R.font.sansation_bold_italic, FontWeight.Bold, FontStyle.Italic),
-    androidx.compose.ui.text.font.Font(R.font.sansation_italic, FontWeight.Normal, FontStyle.Italic),
-    androidx.compose.ui.text.font.Font(R.font.sansation_light, FontWeight.Light),
-    androidx.compose.ui.text.font.Font(R.font.sansation_light_italic, FontWeight.Light, FontStyle.Italic),
-    androidx.compose.ui.text.font.Font(R.font.sansation_regular, FontWeight.Normal),
-)
+import com.example.flocka.ui.components.sansationFontFamily
 
 
 @Composable

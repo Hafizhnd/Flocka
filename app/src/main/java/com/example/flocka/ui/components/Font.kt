@@ -14,3 +14,10 @@ val sansationFontFamily = FontFamily(
     Font(R.font.sansation_light_italic, FontWeight.Light, FontStyle.Italic),
     Font(R.font.sansation_regular, FontWeight.Normal)
 )
+
+val alexandriaFontFamily = FontFamily(
+    Font(R.font.alexandria_bold, FontWeight.Bold),
+    Font(R.font.alexandria_light, FontWeight.Light),
+    Font(R.font.alexandria_regular, FontWeight.Normal),
+    Font(R.font.alexandria_semibold, FontWeight.SemiBold)
+)

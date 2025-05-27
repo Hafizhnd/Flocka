@@ -28,7 +28,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
-import com.yourpackage.ui.components.sansationFontFamily
+import com.example.flocka.ui.components.BluePrimary
+import com.example.flocka.ui.components.OrangePrimary
+import com.example.flocka.ui.components.sansationFontFamily
 import java.util.*
 
 @Composable
@@ -50,7 +52,7 @@ fun AddTaskDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(495.dp)
+                .height(515.dp)
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
                 .background(Color.White)
@@ -76,8 +78,8 @@ fun AddTaskDialog(
                         text = "Add New Task",
                         fontFamily = sansationFontFamily,
                         fontSize = 16.sp,
-                        color = Color(0xFF172D9D),
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        color = BluePrimary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 Column (
@@ -138,8 +140,8 @@ fun AddTaskDialog(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     BasicTextField(
-                        value = taskTitle,
-                        onValueChange = { taskTitle = it },
+                        value = taskDescription,
+                        onValueChange = { taskDescription = it },
                         singleLine = true,
                         textStyle = TextStyle(
                             fontSize = 13.sp,
@@ -160,7 +162,7 @@ fun AddTaskDialog(
                             ) {
                                 if (taskTitle.isEmpty()) {
                                     Text(
-                                        text = "add your task title",
+                                        text = "add your task description",
                                         fontSize = 13.sp,
                                         fontFamily = sansationFontFamily,
                                         fontWeight = FontWeight.Normal,
@@ -209,7 +211,7 @@ fun AddTaskDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7F00)),
+                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
                         shape = RoundedCornerShape(10.dp),
                         elevation = ButtonDefaults.buttonElevation(0.dp) // Remove internal elevation
                     ) {
@@ -222,7 +224,6 @@ fun AddTaskDialog(
                         )
                     }
                 }
-
             }
         }
     }

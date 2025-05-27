@@ -13,9 +13,7 @@ import com.example.flocka.ui.chat.domain.groupChat
 
 @Composable
 fun MessageScreenGroup (
-    messages: List<Message>,
-    title: String,
-    subtitle: String
+    messages: List<Message>
 ) {
     var chatMessages by remember { mutableStateOf(messages) }
 
@@ -24,13 +22,6 @@ fun MessageScreenGroup (
             .fillMaxSize()
             .background(Color(0xFFEDF1F6))
     ) {
-        MessageHeader(
-            username = title,
-            subtitle = subtitle,
-            onBackClick = { /* TODO: Back action */ }
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Column(
             modifier = Modifier
@@ -65,8 +56,6 @@ fun MessageScreenGroup (
 @Composable
 fun PreviewMessageScreenGroup() {
     MessageScreenGroup(
-        messages = groupChat.messages,
-        title = groupChat.title,
-        subtitle = "UI Designer"
+        messages = groupChat.messages
     )
 }

@@ -8,55 +8,67 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.GoogleFont.Provider
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.flocka.AuthViewModel
 import com.example.flocka.R
+import com.example.flocka.User
+import com.example.flocka.ui.components.alexandriaFontFamily
+import com.example.flocka.ui.components.BluePrimary
+import com.example.flocka.ui.components.OrangePrimary
+import com.example.flocka.ui.components.sansationFontFamily
 
 @Composable
-fun RegisterUI(onRegisterClick: (String, String) -> Unit,  onLoginClick: () -> Unit,  onBackClick: () -> Unit,) {
+fun RegisterUI(
+    authViewModel: AuthViewModel = viewModel(),
+    onRegisterSuccess: (User, String) -> Unit,
+    onLoginClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    var showError by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var isLoading by remember { mutableStateOf(false) }
 
-    val provider = Provider(
-        providerAuthority = "com.google.android.gms.fonts",
-        providerPackage = "com.google.android.gms",
-        certificates = R.array.com_google_android_gms_fonts_certs
-    )
+    LaunchedEffect(authViewModel.registerResult) {
+        authViewModel.registerResult?.let { result ->
+            isLoading = false
 
-    val alexandriaFontFamily = FontFamily(
-        androidx.compose.ui.text.font.Font(R.font.alexandria)
-    )
+            result.onSuccess { authResponse ->
+                val user = authResponse.data?.user
+                val token = authResponse.data?.token
+                if (user != null && token != null) {
+                    onRegisterSuccess(user, token)
+                } else {
+                    showError = "Registration succeeded but user data was not returned."
+                }
+            }
+            result.onFailure { exception ->
+                "An unknown error occurred."
+            }
+            authViewModel.registerResult = null
+        }
+    }
 
-    val sansationFontFamily = FontFamily(
-        androidx.compose.ui.text.font.Font(R.font.sansation_bold, FontWeight.Bold),
-        androidx.compose.ui.text.font.Font(R.font.sansation_bold_italic, FontWeight.Bold, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_italic, FontWeight.Normal, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_light, FontWeight.Light),
-        androidx.compose.ui.text.font.Font(R.font.sansation_light_italic, FontWeight.Light, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_regular, FontWeight.Normal),
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF172D9D))
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(BluePrimary)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -68,29 +80,6 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit,  onLoginClick: () -> U
                 )
         )
 
-        Row(
-            modifier = Modifier
-                .padding(top = 25.dp, start = 2.dp)
-                .size(width = 100.dp, height = 40.dp)
-        ){
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_rectangle),
-                    contentDescription = "rectangle",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(width = 13.dp, height = 10.dp)
-                )
-            }
-            Text(
-                "Back",
-                fontFamily = sansationFontFamily,
-                fontWeight = FontWeight.Normal,
-                fontSize = 13.sp,
-                color = Color.White,
-                modifier = Modifier.offset(x = (-10).dp, y = 12.dp)
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -99,332 +88,242 @@ fun RegisterUI(onRegisterClick: (String, String) -> Unit,  onLoginClick: () -> U
         ) {
             Image(
                 painterResource(R.drawable.ic_flocka_logo),
-                "Flocka",
-                modifier = Modifier
-                    .size(100.dp)
+                contentDescription = "Flocka",
+                modifier = Modifier.size(100.dp)
             )
             Text(
                 "Get Started",
                 fontSize = 26.sp,
                 fontFamily = alexandriaFontFamily,
-                color = Color(0xFF172D9D),
+                fontWeight = FontWeight.Bold,
+                color = BluePrimary,
                 modifier = Modifier.offset(y = 15.dp)
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(38.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 33.dp)
-                    .offset(y = 12.dp)
-            ){
-                BasicTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        fontSize = 13.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(43.dp)
-                        .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(start = 24.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (username.isEmpty()) {
-                                Text(
-                                    text = "Enter your username",
-                                    fontSize = 13.sp,
-                                    fontFamily = sansationFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color(0xFFD1D0D0)
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
+            Input(
+                value = username,
+                onValueChange = { username = it },
+                label = "Username",
+                placeholder = "Enter your username"
+            )
 
-                Box(
-                    modifier = Modifier
-                        .offset(x = 24.dp, y = (-6).dp)
-                        .background(color = Color.White)
-                        .padding(start = 4.dp, end = 3.dp)
-                ) {
-                    Text(
-                        "Username",
-                        fontSize = 11.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(26.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Input(
+                value = email,
+                onValueChange = { email = it },
+                label = "Email",
+                placeholder = "Enter your email",
+            )
+            Spacer(modifier = Modifier.height(26.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 33.dp)
-                    .offset(y = 12.dp)
-            ){
-                BasicTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        fontSize = 13.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(43.dp)
-                        .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(start = 24.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (email.isEmpty()) {
-                                Text(
-                                    text = "Enter your email",
-                                    fontSize = 13.sp,
-                                    fontFamily = sansationFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color(0xFFD1D0D0)
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
+            Input(
+                value = password,
+                onValueChange = { password = it },
+                label = "Password",
+                placeholder = "Enter your password",
+                isPassword = true,
+                passwordVisible = passwordVisible,
+                onTogglePassword = { passwordVisible = !passwordVisible }
+            )
 
-                Box(
-                    modifier = Modifier
-                        .offset(x = 24.dp, y = (-6).dp)
-                        .background(color = Color.White)
-                        .padding(start = 4.dp, end = 3.dp)
-                ) {
-                    Text(
-                        "Email",
-                        fontSize = 11.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(26.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Input(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = "Re-enter Password",
+                placeholder = "Re-enter your password",
+                isPassword = true,
+                passwordVisible = passwordVisible,
+                onTogglePassword = { passwordVisible = !passwordVisible }
+            )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 33.dp)
-                    .offset(y = 20.dp)
-            ){
-                BasicTextField(
-                    value = password,
-                    onValueChange =  {password = it},
-                    singleLine = true,
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    textStyle = TextStyle(
-                        fontSize = 13.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.Black
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(43.dp)
-                        .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(start = 24.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (password.isEmpty()) {
-                                Text(
-                                    text = "Enter your password",
-                                    fontSize = 13.sp,
-                                    fontFamily = sansationFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    color = Color(0xFFD1D0D0)
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-
-                Box(
-                    modifier = Modifier
-                        .offset(x = 24.dp, y = (-6).dp)
-                        .background(color = Color.White)
-                        .padding(start = 4.dp, end = 3.dp)
-                ) {
-                    Text(
-                        "Password",
-                        fontSize = 11.sp,
-                        fontFamily = sansationFontFamily,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-
-            }
-
-            if (errorMessage.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(5.dp))
-                Text(errorMessage, color = Color.Red, fontSize = 12.sp, fontFamily = sansationFontFamily, modifier = Modifier.offset(y=20.dp))
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(38.dp))
 
             Button(
                 onClick = {
-                    if (email.isNotBlank() && password.isNotBlank()) {
-                        onRegisterClick(email, password)
-                    } else {
-                        errorMessage = "Email and Password cannot be empty"
+                    when {
+                        username.isBlank() || email.isBlank() || password.isBlank() -> {
+                            showError = "All fields are required"
+                        }
+                        password != confirmPassword -> {
+                            showError = "Passwords do not match"
+                        }
+                        !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
+                            showError = "Invalid email format"
+                        }
+                        else -> {
+                            isLoading = true
+                            authViewModel.register(username, email, password)
+                        }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 33.dp)
-                    .height(50.dp)
-                    .offset(y = 30.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF172D9D),
-                    contentColor = Color.White
-                )
-            )
-            {
-                Text(
-                    "Sign Up",
-                    fontSize = 20.sp,
-                    fontFamily = sansationFontFamily,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(39.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 33.dp)
-                    .offset(y = 27.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .height(50.dp),
+                shape = RoundedCornerShape(15.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary, contentColor = Color.White)
             ) {
-                Divider(
-                    modifier = Modifier.weight(1f),
-                    color = Color.LightGray,
-                    thickness = 1.dp
-                )
-                Text(
-                    "Log in with",
-                    fontSize = 12.sp,
-                    fontFamily = sansationFontFamily,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFFB8B8B8),
-                    modifier = Modifier.padding(horizontal = 23.dp)
-                )
-                Divider(
-                    modifier = Modifier.weight(1f),
-                    color = Color.LightGray,
-                    thickness = 1.dp
-                )
+                Text("Sign Up", fontSize = 20.sp, fontFamily = sansationFontFamily)
             }
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth().offset(y = 20.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                IconButton(onClick = {}) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_google),
-                        contentDescription = "Google",
-                        tint = Color.Unspecified, // Keeps original icon colors
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(20.dp))
-
-                IconButton(onClick = {}) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_facebook),
-                        contentDescription = "Facebook",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(20.dp))
-
-                IconButton(onClick = {}) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_x), // Assuming X logo is stored as ic_x
-                        contentDescription = "X (Twitter)",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = 25.dp),
-                horizontalArrangement = Arrangement.Center
-            ){
-                Text(
-                    "Already have an account?",
-                    color = Color(0xFF172D9D),
-                    fontFamily = sansationFontFamily,
-                    fontSize = 12.sp
-                )
-
+                Text("Already have an account?", fontFamily = sansationFontFamily)
                 Spacer(modifier = Modifier.width(4.dp))
-
                 Text(
                     "Log In",
-                    color = Color(0xFFFF7F00),
                     fontFamily = sansationFontFamily,
+                    color = OrangePrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    modifier = Modifier
-                        .clickable { onLoginClick() }
+                    modifier = Modifier.clickable { onLoginClick() }
                 )
             }
         }
+
+        Row(
+            modifier = Modifier
+                .padding(top = 25.dp, start = 2.dp)
+                .size(width = 120.dp, height = 40.dp)
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_rectangle),
+                    contentDescription = "Back",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(width = 20.dp, height = 20.dp)
+                )
+            }
+            Text(
+                "Back",
+                fontFamily = alexandriaFontFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = 18.sp,
+                color = Color.White,
+                modifier = Modifier.padding(start = 3.dp, top = 8.dp)
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        )
+    }
+
+    showError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { showError = null },
+            title = { Text("Registration Failed") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { showError = null }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
+
+@Composable
+fun Input(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onTogglePassword: (() -> Unit)? = null
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .padding(horizontal = 33.dp)
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(
+                fontSize = 13.sp,
+                fontFamily = sansationFontFamily,
+                fontWeight = FontWeight.Normal,
+                color = Color.Black
+            ),
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            modifier = Modifier
+                .fillMaxSize()
+                .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp))
+                .padding(horizontal = 24.dp, vertical = 14.dp)
+        ) { innerTextField ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            fontSize = 13.sp,
+                            fontFamily = sansationFontFamily,
+                            color = Color(0xFFD1D0D0)
+                        )
+                    }
+                    innerTextField()
+                }
+
+                if (isPassword && onTogglePassword != null) {
+                    IconButton(
+                        onClick = onTogglePassword,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                        val desc = if (passwordVisible) "Hide password" else "Show password"
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = desc,
+                            tint = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .offset(x = 16.dp, y = (-8).dp)
+                .background(Color.White)
+                .padding(horizontal = 4.dp)
+        ) {
+            Text(
+                label,
+                fontSize = 11.sp,
+                fontFamily = sansationFontFamily,
+                fontWeight = FontWeight.Normal,
+                color = Color.Gray
+            )
+        }
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
 fun RegisterUIPreview() {
     RegisterUI(
-        onRegisterClick = { _, _ -> },
+        onRegisterSuccess = {_, _ ->},
         onLoginClick = {},
         onBackClick = {}
     )

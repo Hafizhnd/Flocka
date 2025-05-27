@@ -21,27 +21,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flocka.R
+import com.example.flocka.ui.components.BluePrimary
+import com.example.flocka.ui.components.alexandriaFontFamily
+import com.example.flocka.ui.components.sansationFontFamily
 
 @Composable
 fun LandingPage(onLoginClick: () -> Unit, onSignUpClick: () -> Unit){
-    val provider = Provider(
-        providerAuthority = "com.google.android.gms.fonts",
-        providerPackage = "com.google.android.gms",
-        certificates = R.array.com_google_android_gms_fonts_certs
-    )
-
-    val alexandriaFontFamily = FontFamily(
-        androidx.compose.ui.text.font.Font(R.font.alexandria)
-    )
-
-    val sansationFontFamily = FontFamily(
-        androidx.compose.ui.text.font.Font(R.font.sansation_bold, FontWeight.Bold),
-        androidx.compose.ui.text.font.Font(R.font.sansation_bold_italic, FontWeight.Bold, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_italic, FontWeight.Normal, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_light, FontWeight.Light),
-        androidx.compose.ui.text.font.Font(R.font.sansation_light_italic, FontWeight.Light, FontStyle.Italic),
-        androidx.compose.ui.text.font.Font(R.font.sansation_regular, FontWeight.Normal),
-    )
 
     Box(
         modifier = Modifier
@@ -61,7 +46,7 @@ fun LandingPage(onLoginClick: () -> Unit, onSignUpClick: () -> Unit){
                 .fillMaxHeight()
                 .padding(top = 263.dp)
                 .background(
-                    Color (0xFF172D9D),
+                    BluePrimary,
                     shape = RoundedCornerShape(topStart = 150.dp)
                 ),
         ){
@@ -70,24 +55,30 @@ fun LandingPage(onLoginClick: () -> Unit, onSignUpClick: () -> Unit){
                     .fillMaxSize()
                     .offset(y = 89.dp)
             ) {
-                Text(
-                    "Welcome to Flocka",
-                    color = Color.White,
-                    fontFamily = alexandriaFontFamily,
-                    fontSize = 26.sp,
-                    modifier = Modifier
-                        .padding(horizontal = 68.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Welcome to Flocka",
+                        color = Color.White,
+                        fontFamily = alexandriaFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 26.sp,
+                        modifier = Modifier
+                            .padding(horizontal = 68.dp)
                     )
-                Text(
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-                    color = Color(0xFFD1D0D0),
-                    textAlign = TextAlign.Justify,
-                    fontFamily = sansationFontFamily,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .offset(y = 38.dp)
-                        .padding(horizontal = 80.dp)
-                )
+                    Text(
+                        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                        color = Color(0xFFD1D0D0),
+                        textAlign = TextAlign.Justify,
+                        fontFamily = sansationFontFamily,
+                        fontSize = 15.sp,
+                        modifier = Modifier
+                            .offset(y = 38.dp)
+                            .padding(horizontal = 80.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 

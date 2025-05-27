@@ -2,6 +2,7 @@ package com.example.flocka.ui.chat.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,12 +33,14 @@ val gray_3b = Color(0xFF3B3B3B)
 @Composable
 fun ChattingRow(
     modifier: Modifier = Modifier,
-    data: ChatModal
+    data: ChatModal,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(54.dp)) {
