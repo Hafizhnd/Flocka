@@ -2,7 +2,6 @@ package com.example.flocka.ui.home
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,12 +21,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import com.google.accompanist.pager.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -47,23 +46,30 @@ import com.example.flocka.R
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.sansationFontFamily
-import com.example.flocka.ui.home.quiz.QuizDelayDialog
+import com.example.flocka.ui.home.quiz.QuizCongratulationsDialog
 import com.example.flocka.ui.home.quiz.QuizDialogType
-import com.example.flocka.ui.home.quiz.QuizLetsStartDialog
-import com.example.flocka.ui.home.quiz.QuizPromptDialog
-import com.example.flocka.ui.home.quiz.QuizQuestionDialog
+import com.example.flocka.ui.home.quiz.QuizLetsStartTimedDialog
+import com.example.flocka.ui.home.quiz.QuizLoseStreakDialog
+import com.example.flocka.ui.home.quiz.QuizQuestionDisplayDialog
+import com.example.flocka.ui.home.quiz.QuizRemindLaterDialog
 import com.example.flocka.ui.home.quiz.QuizStateManager
+import com.example.flocka.ui.home.quiz.QuizTimePromptDialog
+import com.google.accompanist.pager.ExperimentalPagerApi
+import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.rememberPagerState
 import kotlinx.coroutines.delay
 
 @Composable
 fun HomePage(
     onSpaceClick: () -> Unit,
     onEventClick: () -> Unit,
-    onSeeCommunities: () -> Unit )
+    onSeeCommunities: () -> Unit,
+    onCommunityClick: () -> Unit)
 {
 
 
-    val quizManager = remember { QuizStateManager() }
+    val coroutineScope = rememberCoroutineScope()
+    val quizManager = remember { QuizStateManager(coroutineScope) }
 
     Column(
         modifier = Modifier
@@ -81,9 +87,9 @@ fun HomePage(
 
             AdsSection()
 
-            StreakSection()
+            StreakSection(quizManager = quizManager)
 
-            CommunitySection(onSeeCommunities = onSeeCommunities)
+            CommunitySection(onSeeCommunities = onSeeCommunities, onCommunityClick = onCommunityClick)
 
             Column(
                 modifier = Modifier
@@ -108,6 +114,83 @@ fun HomePage(
                 )
             }
             Spacer(modifier = Modifier.height(100.dp))
+
+            if (quizManager.currentDialog != QuizDialogType.NONE) {
+                Dialog(
+                    onDismissRequest = {
+                        // Decide if dialogs can be dismissed by clicking outside or back press
+                        // For most of these, you probably want explicit button actions.
+                        // quizManager.dismissDialog() // Uncomment if general dismissal is allowed
+                    },
+                    properties = DialogProperties(
+                        dismissOnClickOutside = false, // Prevents dismissal on outside click
+                        dismissOnBackPress = false     // Prevents dismissal on back press
+                    )
+                ) {
+                    when (quizManager.currentDialog) {
+                        QuizDialogType.PROMPT -> {
+                            QuizTimePromptDialog(
+                                onDismiss = { quizManager.dismissDialog() },
+                                onYes = { quizManager.handlePromptAnswer(true) },
+                                onNo = { quizManager.handlePromptAnswer(false) }
+                            )
+                        }
+
+                        QuizDialogType.REMIND_LATER -> {
+                            QuizRemindLaterDialog(
+                                onDismiss = { quizManager.dismissDialog() },
+                                onRemind = { quizManager.handleRemindLaterAnswer(true) },
+                                onNoThanks = { quizManager.handleRemindLaterAnswer(false) }
+                            )
+                        }
+
+                        QuizDialogType.LOSE_STREAK -> {
+                            QuizLoseStreakDialog(
+                                onDismiss = { quizManager.dismissDialog() }, // Or specific action
+                                onClose = { quizManager.dismissDialog() }
+                            )
+                        }
+
+                        QuizDialogType.LETS_START -> {
+                            QuizLetsStartTimedDialog(
+                                onDismiss = { /* Managed by StateManager's timed transition */ },
+                                onTimeout = { quizManager.startQuiz() } // This is now handled internally by StateManager
+                            )
+                        }
+
+                        QuizDialogType.QUESTION -> {
+                            val currentQ = quizManager.getCurrentQuestion()
+                            if (currentQ != null) {
+                                QuizQuestionDisplayDialog(
+                                    question = currentQ,
+                                    selectedAnswer = quizManager.selectedAnswerByUser,
+                                    isAnswerRevealed = quizManager.isAnswerRevealed,
+                                    onAnswerSelected = { answer -> quizManager.selectAnswer(answer) },
+                                    onDismiss = { /* Consider if dismissible here */ }
+                                )
+                            } else {
+                                // Handle case where question is somehow null, though unlikely
+                                quizManager.dismissDialog()
+                            }
+                        }
+                        // QuizDialogType.SHOWING_ANSWER is an internal state for QuizStateManager,
+                        // The UI for it is handled within QuizQuestionDisplayDialog's color logic.
+
+                        QuizDialogType.CONGRATULATIONS -> {
+                            QuizCongratulationsDialog(
+                                onDismiss = { quizManager.dismissDialog() },
+                                onClose = { quizManager.dismissDialog() }
+                            )
+                        }
+
+                        QuizDialogType.NONE -> {
+                        }
+
+                        else -> {
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -162,16 +245,13 @@ fun AdsSection() {
 }
 
 @Composable
-fun StreakSection(){
+fun StreakSection(quizManager: QuizStateManager){
 
-    val quizManager = remember { QuizStateManager() }
-    val infiniteTransition = rememberInfiniteTransition()
     val rotation = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         while (true) {
-            // Wiggle smoothly back and forth for ~1 second
-            repeat(3) { // 3 wiggles
+            repeat(3) {
                 rotation.animateTo(
                     targetValue = -15f,
                     animationSpec = tween(durationMillis = 100, easing = LinearEasing)
@@ -301,85 +381,6 @@ fun StreakSection(){
                         .size(50.dp)
                 )
 
-                when (quizManager.currentDialog) {
-                    QuizDialogType.PROMPT -> {
-                        Dialog(onDismissRequest = { },
-                            properties = DialogProperties(
-                                dismissOnClickOutside = false,
-                                dismissOnBackPress = false
-                            )) {
-                            QuizPromptDialog(
-                                onDismiss = { },
-                                onStartQuiz = { quizManager.showLetsStart() },
-                                onDelayQuiz = { quizManager.showDelayOption() }
-                            )
-                        }
-                    }
-
-                    QuizDialogType.DELAY_OPTION -> {
-                        Dialog(onDismissRequest = { },
-                            properties = DialogProperties(
-                                dismissOnClickOutside = false,
-                                dismissOnBackPress = false
-                            )) {
-                            QuizDelayDialog(
-                                onDismiss = { },
-                                onRemindLater = { quizManager.showPrompt() },
-                                onCancel = { quizManager.dismissDialog() }
-                            )
-                        }
-                    }
-
-                    QuizDialogType.LETS_START -> {
-                        Dialog(onDismissRequest = { },
-                            properties = DialogProperties(
-                                dismissOnClickOutside = false,
-                                dismissOnBackPress = false
-                            )) {
-                            QuizLetsStartDialog(
-                                onDismiss = { },
-                                onBegin = { quizManager.startQuiz() }
-                            )
-                        }
-                    }
-
-                    QuizDialogType.QUESTION -> {
-                        Dialog(onDismissRequest = { },
-                            properties = DialogProperties(
-                                dismissOnClickOutside = false,
-                                dismissOnBackPress = false
-                            )) {
-                            QuizQuestionDialog(
-                                question = quizManager.getCurrentQuestion().toString(),
-                                options = quizManager.getCurrentOptions(),
-                                onAnswerSelected = {
-                                    quizManager.selectedAnswerIndex = quizManager.getCurrentOptions().indexOf(it)
-                                    quizManager.showAnswer()
-                                },
-                                onDismiss = {  }
-                            )
-                        }
-                    }
-
-                    QuizDialogType.ANSWER -> {
-                        Dialog(onDismissRequest = { },
-                            properties = DialogProperties(
-                                dismissOnClickOutside = false,
-                                dismissOnBackPress = false
-                            )) {
-                            QuizAnswerDialog(
-                                questionIndex = quizManager.currentQuestionIndex,
-                                selectedAnswer = quizManager.selectedAnswerIndex,
-                                onNext = { quizManager.nextQuestion() }
-                            )
-                        }
-                    }
-
-                    else -> {
-
-                    }
-                }
-
                 Text(
                     "X",
                     color = Color.White,
@@ -398,12 +399,7 @@ fun StreakSection(){
 }
 
 @Composable
-fun QuizAnswerDialog(questionIndex: Int, selectedAnswer: Int, onNext: () -> Unit) {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun CommunitySection(onSeeCommunities: () -> Unit) {
+fun CommunitySection(onSeeCommunities: () -> Unit, onCommunityClick: () -> Unit) {
     val communities = listOf(
         Triple(
             R.drawable.img_community_1,
@@ -422,7 +418,7 @@ fun CommunitySection(onSeeCommunities: () -> Unit) {
         )
     )
 
-    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp).clickable(onClick = onCommunityClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Communities", style = MaterialTheme.typography.titleLarge.copy(
@@ -493,6 +489,7 @@ fun HomePagePreview(){
     HomePage(
         onEventClick = {},
         onSpaceClick = {},
-        onSeeCommunities = {}
+        onSeeCommunities = {},
+        onCommunityClick = {}
     )
 }

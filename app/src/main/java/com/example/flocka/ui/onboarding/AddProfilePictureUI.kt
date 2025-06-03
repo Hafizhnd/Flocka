@@ -1,7 +1,6 @@
 package com.example.flocka.ui.onboarding
 
 import android.Manifest
-import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -33,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.flocka.AuthViewModel
+import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.R
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
@@ -64,29 +63,10 @@ fun AddProfilePictureUI(
 
     var tempCameraUri: Uri? = null
 
-    val galleryPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_IMAGES
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
-    }
-
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
             imageUri = uri
-        }
-    )
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                // If permission is granted, launch the gallery
-                galleryLauncher.launch("image/*")
-            } else {
-                // Handle the case where the user denies the permission
-                // You could show a message here.
-            }
         }
     )
 
@@ -103,7 +83,7 @@ fun AddProfilePictureUI(
         contract = ActivityResultContracts.TakePicture(),
         onResult = { success ->
             if (success) {
-                imageUri = tempCameraUri // Use the URI we created for the camera
+                imageUri = tempCameraUri
             }
         }
     )
@@ -112,7 +92,7 @@ fun AddProfilePictureUI(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             if (isGranted) {
-                tempCameraUri = createImageUri() // Create a new URI before launching camera
+                tempCameraUri = createImageUri()
                 cameraLauncher.launch(tempCameraUri)
             }
         }
@@ -181,15 +161,17 @@ fun AddProfilePictureUI(
     ) {
         Spacer(Modifier.height(18.dp))
 
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start){
+            Text(
+                "Set up your account",
+                fontFamily = alexandriaFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = Color.White,
+            )
+        }
         Text(
-            "Profile Picture",
-            fontFamily = alexandriaFontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            color = Color.White
-        )
-        Text(
-            "Upload your profile picture",
+            "Complete your account set up by adding an engaging profile picture so you will leave a lasting impression in the online community!",
             fontFamily = alexandriaFontFamily,
             fontWeight = FontWeight.Light,
             fontSize = 11.sp,

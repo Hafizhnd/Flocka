@@ -109,8 +109,8 @@ fun PeopleProfileSwipe(
 
     LaunchedEffect(lastSwipedTime) {
         showHowTo = false
-        delay(10_000) // 10 seconds
-        if (System.currentTimeMillis() - lastSwipedTime >= 10_000) {
+        delay(5_000) // 10 seconds
+        if (System.currentTimeMillis() - lastSwipedTime >= 5_000) {
             showHowTo = true
         }
     }

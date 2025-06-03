@@ -7,7 +7,7 @@ data class User(
     val uid: String,
 
     @SerializedName("name")
-    val name: String?, // Can be null initially before setup
+    val name: String?,
 
     @SerializedName("username")
     val username: String,
@@ -15,7 +15,10 @@ data class User(
     @SerializedName("email")
     val email: String,
 
-    // Add all the other fields that your backend sends
+    @SerializedName("profile_image_url")
+    val profile_image_url: String?,
+
+
     @SerializedName("profession")
     val profession: String?,
 
@@ -60,9 +63,10 @@ data class AuthResponse(
 )
 
 data class UpdateUserRequest(
+    @SerializedName("username") val username: String?,
     @SerializedName("name") val name: String?,
-    val profession: String?,
-    val gender: String?,
-    val age: Int?,
-    val bio: String?
+    @SerializedName("profession") val profession: String?,
+    @SerializedName("gender") val gender: String?,
+    @SerializedName("age") val age: Int?,
+    @SerializedName("bio") val bio: String?
 )

@@ -27,7 +27,7 @@ import com.example.flocka.ui.home.communities.CommunityDropdown
 @Composable
 fun MyCommunities(
     onBackClick: () -> Unit,
-    onCommunityCardClick: () -> Unit
+    onCommunityClick: () -> Unit
 ){
     Column(
         modifier = Modifier
@@ -55,10 +55,6 @@ fun MyCommunities(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        repeat(5) {
-            CommunityCard(onClick = onCommunityCardClick)
-            Spacer(modifier = Modifier.height(8.dp))
-        }
     }
 }
 
@@ -67,6 +63,6 @@ fun MyCommunities(
 fun PreviewMyCommunities(){
     MyCommunities (
         onBackClick = {},
-        onCommunityCardClick = {}
+        onCommunityClick = {}
     )
 }

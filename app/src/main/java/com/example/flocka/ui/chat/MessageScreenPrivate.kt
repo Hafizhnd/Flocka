@@ -5,15 +5,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.flocka.ui.chat.components.*
 import com.example.flocka.ui.chat.domain.Message
 import com.example.flocka.ui.chat.domain.privateChat
 
 @Composable
 fun MessageScreenPrivate (
-    messages: List<Message>
+    messages: List<Message>,
+    title: String,
+    subtitle: String,
+    onBackClick: () -> Unit
 ) {
     var chatMessages by remember { mutableStateOf(messages) }
 
@@ -22,6 +27,12 @@ fun MessageScreenPrivate (
             .fillMaxSize()
             .background(Color(0xFFEDF1F6))
     ) {
+
+        MessageHeader(
+            username = title,
+            subtitle = subtitle,
+            onBackClick = onBackClick
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -56,6 +67,9 @@ fun MessageScreenPrivate (
 @Composable
 fun PreviewMessageScreenPrivate() {
     MessageScreenPrivate(
-        messages = privateChat.messages
+        messages = privateChat.messages,
+        title = privateChat.title,
+        subtitle = "UI Designer",
+        onBackClick = {}
     )
 }

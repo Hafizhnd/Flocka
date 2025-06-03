@@ -1,4 +1,4 @@
-package com.example.flocka
+package com.example.flocka.viewmodel.auth
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +14,14 @@ import android.net.Uri
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import android.util.Log
+import com.example.flocka.AuthResponse
+import com.example.flocka.LoginRequest
+import com.example.flocka.RegisterRequest
+import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.UpdateUserRequest
+import com.example.flocka.User
+import kotlinx.coroutines.flow.asStateFlow
 
 class AuthViewModel : ViewModel() {
     var loginResult by mutableStateOf<Result<AuthResponse>?>(null)
@@ -22,22 +30,49 @@ class AuthViewModel : ViewModel() {
     var uploadResult by mutableStateOf<Result<AuthResponse>?>(null)
 
     private val _userProfile = MutableStateFlow<User?>(null)
-    val userProfile: StateFlow<User?> = _userProfile
+    val userProfile: StateFlow<User?> = _userProfile.asStateFlow()
 
     private val _profileError = MutableStateFlow<String?>(null)
-    val profileError: StateFlow<String?> = _profileError
+    val profileError: StateFlow<String?> = _profileError.asStateFlow()
+
+    private val _token = MutableStateFlow<String?>(null)
+    val token: StateFlow<String?> = _token.asStateFlow()
+
+    fun setToken(newToken: String?) {
+        Log.d("AuthViewModel", "Setting token: ${newToken?.take(10)}...")
+        _token.value = newToken
+        if (!newToken.isNullOrBlank()) {
+            fetchUserProfile(newToken)
+        } else {
+            _userProfile.value = null
+        }
+    }
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.authApi.login(LoginRequest(email, password))
                 if (response.isSuccessful && response.body()?.success == true) {
-                    loginResult = Result.success(response.body()!!)
+                    val authData = response.body()?.data
+                    if (authData?.user != null && authData.token != null) {
+                        loginResult = Result.success(response.body()!!)
+                        setToken(authData.token)
+                        _userProfile.value = authData.user
+                        Log.d("AuthViewModel", "Login successful. Token set. User: ${authData.user.username}")
+                    } else {
+                        val errorMsg = response.body()?.message ?: "Login succeeded but data is incomplete."
+                        Log.e("AuthViewModel", "Login error (incomplete data): $errorMsg")
+                        loginResult = Result.failure(Exception(errorMsg))
+                        setToken(null)
+                    }
                 } else {
-                    loginResult = Result.failure(Exception(response.body()?.message ?: "Login failed"))
+                    val errorMsg = response.body()?.message ?: response.errorBody()?.string() ?: "Login failed"
+                    loginResult = Result.failure(Exception(errorMsg))
+                    setToken(null)
                 }
             } catch (e: Exception) {
                 loginResult = Result.failure(e)
+                setToken(null)
             }
         }
     }
@@ -46,23 +81,36 @@ class AuthViewModel : ViewModel() {
     fun register(username: String, email: String, password: String) {
         viewModelScope.launch {
             try {
-                // 'name' is no longer passed in RegisterRequest
                 val response = RetrofitClient.authApi.register(RegisterRequest(username, email, password))
-                if (response.isSuccessful && response.body()?.data != null) { // Check for data wrapper
-                    registerResult = Result.success(response.body()!!)
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val authData = response.body()?.data
+                    if (authData?.user != null && authData.token != null) {
+                        registerResult = Result.success(response.body()!!)
+                        setToken(authData.token)
+                        _userProfile.value = authData.user
+                        Log.d("AuthViewModel", "Registration successful. Token set. User: ${authData.user.username}")
+                    } else {
+                        val errorMsg = response.body()?.message ?: "Registration succeeded but data is incomplete."
+                        Log.e("AuthViewModel", "Register error (incomplete data): $errorMsg")
+                        registerResult = Result.failure(Exception(errorMsg))
+                        setToken(null)
+                    }
                 } else {
                     val errorMsg = response.body()?.message ?: response.errorBody()?.string() ?: "Registration failed"
                     registerResult = Result.failure(Exception(errorMsg))
+                    setToken(null)
                 }
             } catch (e: Exception) {
                 registerResult = Result.failure(e)
+                setToken(null)
             }
         }
     }
 
     fun updateProfile(
         token: String,
-        name: String, // Combined name
+        username: String,
+        name: String,
         profession: String,
         gender: String,
         age: String,
@@ -70,8 +118,11 @@ class AuthViewModel : ViewModel() {
         interestIds: List<String>
     ) {
         viewModelScope.launch {
+            updateProfileResult = null
+            _profileError.value = null
             try {
                 val request = UpdateUserRequest(
+                    username = username.takeIf { it.isNotBlank() },
                     name = name.takeIf { it.isNotBlank() }, // Use combined name
                     profession = profession.takeIf { it.isNotBlank() },
                     gender = gender.takeIf { it.isNotBlank() },
@@ -97,23 +148,37 @@ class AuthViewModel : ViewModel() {
     }
 
     fun fetchUserProfile(token: String) {
+        if (token.isBlank()) {
+            Log.d("AuthViewModel", "fetchUserProfile skipped: token is blank.")
+            return
+        }
+        if (_userProfile.value != null && _token.value == token) {
+            Log.d("AuthViewModel", "fetchUserProfile skipped: profile already loaded for current token.")
+            return
+        }
+        Log.d("AuthViewModel", "Fetching user profile with token.")
         viewModelScope.launch {
+            _profileError.value = null
             try {
-                // The token passed from NavGraph needs "Bearer " prepended
                 val response = RetrofitClient.authApi.getProfile("Bearer $token")
                 if (response.isSuccessful && response.body()?.data?.user != null) {
                     _userProfile.value = response.body()!!.data!!.user
+                    Log.d("AuthViewModel", "User profile fetched: ${_userProfile.value?.username}")
                 } else {
-                    _profileError.value = response.body()?.message ?: "Failed to fetch profile."
+                    _profileError.value = response.body()?.message ?: "Failed to fetch profile (Code: ${response.code()})."
+                    Log.e("AuthViewModel", "Fetch UserProfile Error: ${response.code()} - ${response.body()?.message}. ErrorBody: ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
-                _profileError.value = e.message ?: "An unknown error occurred."
+                _profileError.value = "Network error fetching profile: ${e.message}"
+                Log.e("AuthViewModel", "Fetch UserProfile Exception", e)
             }
         }
     }
 
     fun uploadProfilePicture(context: Context, token: String, imageUri: Uri) {
         viewModelScope.launch {
+            uploadResult = null
+            _profileError.value = null
             try {
                 // Get an InputStream from the Uri
                 context.contentResolver.openInputStream(imageUri)?.use { inputStream ->
@@ -141,5 +206,13 @@ class AuthViewModel : ViewModel() {
                 uploadResult = Result.failure(e)
             }
         }
+    }
+    fun logout() {
+        Log.d("AuthViewModel", "Logging out user and clearing token.")
+        setToken(null)
+        loginResult = null
+        registerResult = null
+        updateProfileResult = null
+        uploadResult = null
     }
 }

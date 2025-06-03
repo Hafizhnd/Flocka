@@ -7,25 +7,38 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,29 +55,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flocka.AuthViewModel
+import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.R
+import com.example.flocka.data.model.Interest
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.alexandriaFontFamily
 import com.example.flocka.ui.components.sansationFontFamily
-import androidx.compose.foundation.layout.FlowRow // Opt-in may be required
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.InputChipDefaults
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateListOf
-import com.example.flocka.data.model.Interest
 import com.example.flocka.viewmodel.interest.InterestViewModel
-import kotlinx.coroutines.delay
 
 
 @Composable
@@ -79,12 +77,10 @@ fun SetUpAccountUI (
     var firstname by remember { mutableStateOf("") }
     var lastname by remember {mutableStateOf("") }
     var profession by remember {mutableStateOf("") }
-    var gender by remember {mutableStateOf("") }
+    var gender by remember {mutableStateOf("Select Gender") }
     var age by remember {mutableStateOf("") }
     var bio by remember {mutableStateOf("") }
-
-    var interestQuery by remember { mutableStateOf("") }
-    val searchResults by interestViewModel.searchResults.collectAsState()
+    var interest by remember { mutableStateOf("") }
     val selectedInterests = remember { mutableStateListOf<Interest>() }
 
     var showError by remember { mutableStateOf<String?>(null) }
@@ -101,11 +97,6 @@ fun SetUpAccountUI (
             }
             authViewModel.updateProfileResult = null // Reset state
         }
-    }
-
-    LaunchedEffect(key1 = interestQuery) {
-        delay(300) // Debounce for 300ms
-        interestViewModel.searchInterests(token, interestQuery)
     }
 
     Box(
@@ -187,21 +178,12 @@ fun SetUpAccountUI (
                 multiline = true
             )
 
-            InterestPicker(
-                query = interestQuery,
-                onQueryChange = { interestQuery = it },
-                searchResults = searchResults,
+            InterestInputField(
+                token = token,
+                interest = interest,
+                onValueChange = { interest = it },
                 selectedInterests = selectedInterests,
-                onInterestSelected = { interest ->
-                    if (!selectedInterests.any { it.id == interest.id }) {
-                        selectedInterests.add(interest)
-                    }
-                    interestQuery = "" // Clear search box
-                    interestViewModel.searchInterests(token, "") // Clear results
-                },
-                onInterestRemoved = { interest ->
-                    selectedInterests.remove(interest)
-                }
+                viewModel = interestViewModel
             )
 
             Spacer(modifier = Modifier.padding(top = 50.dp))
@@ -213,6 +195,7 @@ fun SetUpAccountUI (
                     val interestIds = selectedInterests.map { it.id }
                     authViewModel.updateProfile(
                         token = token,
+                        username = username,
                         name = fullName,
                         profession = profession,
                         gender = gender,
@@ -243,7 +226,7 @@ fun TypeField(
     placeholder: String,
     height: Dp = 50.dp,
     multiline: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     Box(
         modifier = Modifier
@@ -265,13 +248,16 @@ fun TypeField(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(BluePrimary, RoundedCornerShape(15.dp))
+                .background(Color.Transparent, RoundedCornerShape(15.dp))
                 .border(1.dp, Color.White, RoundedCornerShape(15.dp))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp)
+                .padding(top = 18.dp),
             decorationBox = { innerTextField ->
                 Row(
                     verticalAlignment = if (multiline) Alignment.Top else Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = if (multiline) 8.dp else 0.dp)
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
                         if (value.isEmpty()) {
@@ -290,14 +276,13 @@ fun TypeField(
 
         Box(
             modifier = Modifier
-                .offset(x = 20.dp, y = (-8).dp)
-                .background(BluePrimary)
+                .offset(x = 10.dp, y = 6.dp)
                 .padding(horizontal = 6.dp)
         ) {
             Text(
                 text = label,
-                fontSize = 12.sp,
-                fontFamily = alexandriaFontFamily,
+                fontSize = 13.sp,
+                fontFamily = sansationFontFamily,
                 color = Color.White
             )
         }
@@ -311,7 +296,7 @@ fun GenderDropdown(
     modifier: Modifier = Modifier
 ) {
     val expanded = remember { mutableStateOf(false) }
-    val options = listOf("Male", "Female", "Other")
+    val options = listOf("Male", "Female")
 
     Box(modifier = modifier) {
         Column {
@@ -319,10 +304,11 @@ fun GenderDropdown(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .background(BluePrimary, RoundedCornerShape(15.dp))
+                    .background(Color.Transparent, RoundedCornerShape(15.dp))
                     .border(1.dp, Color.White, RoundedCornerShape(15.dp))
                     .clickable { expanded.value = true }
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 14.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Row(
@@ -366,14 +352,13 @@ fun GenderDropdown(
 
         Box(
             modifier = Modifier
-                .offset(x = 20.dp, y = (-8).dp)
-                .background(BluePrimary)
+                .offset(x = 10.dp, y = 6.dp)
                 .padding(horizontal = 6.dp)
         ) {
             Text(
                 text = "Gender",
-                fontSize = 12.sp,
-                fontFamily = alexandriaFontFamily,
+                fontSize = 13.sp,
+                fontFamily = sansationFontFamily,
                 color = Color.White
             )
         }
@@ -390,7 +375,6 @@ fun AgeFieldWithSuffix(
         BasicTextField(
             value = value,
             onValueChange = {
-                // Accept only digits and limit to 2 characters
                 val filtered = it.filter { char -> char.isDigit() }.take(2)
                 onValueChange(filtered)
             },
@@ -405,9 +389,10 @@ fun AgeFieldWithSuffix(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .background(BluePrimary, RoundedCornerShape(15.dp))
+                .background(Color.Transparent, RoundedCornerShape(15.dp))
                 .border(1.dp, Color.White, RoundedCornerShape(15.dp))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp)
+                .padding(top = 18.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             decorationBox = { innerTextField ->
                 Row(
@@ -440,104 +425,151 @@ fun AgeFieldWithSuffix(
 
         Box(
             modifier = Modifier
-                .offset(x = 20.dp, y = (-8).dp)
-                .background(BluePrimary)
+                .offset(x = 10.dp, y = 6.dp)
                 .padding(horizontal = 6.dp)
         ) {
             Text(
                 text = "Age",
-                fontSize = 12.sp,
-                fontFamily = alexandriaFontFamily,
+                fontSize = 13.sp,
+                fontFamily = sansationFontFamily,
                 color = Color.White
             )
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun InterestPicker(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    searchResults: List<Interest>,
-    selectedInterests: List<Interest>,
-    onInterestSelected: (Interest) -> Unit,
-    onInterestRemoved: (Interest) -> Unit
+fun InterestInputField(
+    token: String,
+    interest: String,
+    onValueChange: (String) -> Unit,
+    selectedInterests: MutableList<Interest>,
+    viewModel: InterestViewModel
 ) {
-    Column(modifier = Modifier.padding(top = 20.dp)) {
+    var expanded by remember { mutableStateOf(false) }
+    val suggestions by viewModel.searchResults.collectAsState()
+    var justSelected by remember { mutableStateOf(false) }
+    val dropdownHeight = (suggestions.size.coerceAtMost(2) * 48).dp
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(interest) {
+        if (justSelected) {
+            justSelected = false
+            return@LaunchedEffect
+        }
+
+        if (interest.length >= 2) {
+            viewModel.searchInterests(token, interest)
+            expanded = true
+        } else {
+            expanded = false
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        TypeField(
+            value = interest,
+            onValueChange = {
+                onValueChange(it)
+                if (it.length >= 2) expanded = true
+            },
+            label = "Interest",
+            placeholder = "Type something you’re interested in",
+            height = 78.dp,
+            multiline = true
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Color.White, RoundedCornerShape(15.dp))
-                .padding(16.dp)
+                .padding(horizontal = 4.dp)
+                .offset(y = -dropdownHeight)
+                .offset(y = -78.dp)
         ) {
-            Column {
-                if (selectedInterests.isNotEmpty()) {
-                    FlowRow(
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        selectedInterests.forEach { interest ->
-                            InputChip(
-                                selected = false,
-                                onClick = { onInterestRemoved(interest) },
-                                label = { Text(interest.name, color = BluePrimary) },
-                                colors = InputChipDefaults.inputChipColors(containerColor = Color.White),
-                                trailingIcon = {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Remove",
-                                        modifier = Modifier.size(InputChipDefaults.IconSize),
-                                        tint = BluePrimary
-                                    )
-                                }
-                            )
-                        }
+            if (expanded && suggestions.isNotEmpty()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 150.dp)
+                        .background(Color.White)
+                        .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                ) {
+                    items(suggestions.filterNot { it in selectedInterests }) { suggestion ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = suggestion.name,
+                                    fontFamily = sansationFontFamily,
+                                    color = Color.Black
+                                )
+                            },
+                            onClick = {
+                                justSelected = true
+                                onValueChange(suggestion.name)
+                                expanded = false
+                            }
+                        )
                     }
                 }
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    textStyle = TextStyle(
-                        fontSize = 15.sp,
-                        fontFamily = sansationFontFamily,
-                        color = Color.White
-                    ),
-                    cursorBrush = SolidColor(Color.White),
-                    decorationBox = { innerTextField ->
-                        if (query.isEmpty()) {
-                            Text("Search and add interests", color = Color.Gray)
-                        }
-                        innerTextField()
+                val scrollbarHeightRatio =
+                    (listState.layoutInfo.viewportSize.height.toFloat() /
+                            listState.layoutInfo.totalItemsCount.coerceAtLeast(1) /
+                            48f)
+
+                val visibleItemCount = listState.layoutInfo.visibleItemsInfo.size
+                val totalItems = listState.layoutInfo.totalItemsCount
+                val firstVisibleIndex = listState.firstVisibleItemIndex
+
+                if (totalItems > visibleItemCount) {
+                    val scrollbarHeightFraction = visibleItemCount.toFloat() / totalItems
+                    val scrollbarOffsetFraction = firstVisibleIndex.toFloat() / totalItems
+
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .fillMaxHeight()
+                            .width(4.dp)
+                            .padding(end = 2.dp)
+                            .background(Color.Transparent)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp * scrollbarHeightFraction.coerceIn(0.05f, 1f))
+                                .offset(y = 150.dp * scrollbarOffsetFraction)
+                                .background(Color.Gray, shape = RoundedCornerShape(2.dp))
+                        )
                     }
-                )
+                }
             }
         }
-        Box(
-            modifier = Modifier
-                .offset(x = 20.dp, y = (-8).dp)
-                .background(BluePrimary)
-                .padding(horizontal = 6.dp)
-        ) {
-            Text(text = "Interests", fontSize = 12.sp, fontFamily = alexandriaFontFamily, color = Color.White)
-        }
 
-        if (searchResults.isNotEmpty()) {
-            LazyColumn(
+        if (selectedInterests.isNotEmpty()) {
+            FlowRow(
                 modifier = Modifier
-                    .heightIn(max = 150.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
-                    .background(BluePrimary)
+                    .padding(top = 8.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(searchResults) { interest ->
-                    Text(
-                        text = interest.name,
-                        color = Color.White,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onInterestSelected(interest) }
-                            .padding(horizontal = 12.dp, vertical = 16.dp)
+                selectedInterests.forEach { interestItem ->
+                    InputChip(
+                        selected = true,
+                        onClick = {},
+                        label = { Text(interestItem.name, color = Color.White) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove",
+                                modifier = Modifier.clickable {
+                                    selectedInterests.remove(interestItem)
+                                }
+                            )
+                        },
+                        colors = InputChipDefaults.inputChipColors(
+                            containerColor = OrangePrimary
+                        )
                     )
                 }
             }

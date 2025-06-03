@@ -68,6 +68,7 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.core.splashscreen)
 
     // ConstraintLayout (if needed)
     implementation(libs.androidx.constraintlayout)

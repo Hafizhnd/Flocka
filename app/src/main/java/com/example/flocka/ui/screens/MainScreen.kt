@@ -1,5 +1,6 @@
 package com.yourpackage.ui.screens
 
+import android.util.Log
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -9,7 +10,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.flocka.AuthViewModel
+import com.example.flocka.viewmodel.auth.AuthViewModel
+import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.navigation.MainNavGraph
 import com.yourpackage.ui.components.BottomNavBar
 import com.yourpackage.ui.components.TopBar
@@ -30,16 +32,27 @@ fun MainScreen(
         }
     }
 
-    // Define route groups
+    LaunchedEffect(token) {
+        if (token.isNotBlank()) {
+            Log.d("MainScreen", "Token received from NavArg, setting in AuthViewModel: $token")
+            authViewModel.setToken(token)
+        }
+    }
+
     val showTopBarRoutes = listOf("home", "chat", "progress")
     val showBottomBarRoutes = listOf("home", "chat", "progress", "people", "profile", "space", "event")
 
     Scaffold(
         topBar = {
             if (currentRoute in showTopBarRoutes) {
+                val fullProfileImageUrl = userProfile?.profile_image_url?.let { relativePath ->
+                    RetrofitClient.BASE_URL.removeSuffix("/") + relativePath
+                }
                 TopBar(
                     username = userProfile?.name ?: "Loading...",
-                    subtitle = userProfile?.profession ?: "Welcome to Flocka!"
+                    subtitle = userProfile?.profession ?: "Welcome to Flocka!",
+                    profileImageUrl = fullProfileImageUrl,
+                    navController = navController
                 )
             }
         },
@@ -50,7 +63,7 @@ fun MainScreen(
         }
     ) { paddingValues ->
         BaseScreen {
-            MainNavGraph(navController = navController, paddingValues = paddingValues)
+            MainNavGraph(navController = navController, paddingValues = paddingValues, token = token)
         }
     }
 }

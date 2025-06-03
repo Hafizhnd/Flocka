@@ -46,31 +46,36 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flocka.R
+import com.example.flocka.data.model.CommunityItem
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.alexandriaFontFamily
 import com.example.flocka.ui.components.sansationFontFamily
+import com.example.flocka.viewmodel.community.CommunityViewModel
 
 @Composable
 fun EditCommunityDialog(
+    token: String,
+    communityViewModel: CommunityViewModel,
+    currentCommunity: CommunityItem,
     onDismiss: () -> Unit
 ){
 
-    var communityName by remember { mutableStateOf("") }
-    var communityDesc by remember { mutableStateOf("") }
+    var communityName by remember { mutableStateOf(currentCommunity.name) }
+    var communityDesc by remember { mutableStateOf(currentCommunity.description ?: "") }
 
     Box(
         modifier = Modifier
-            .fillMaxWidth() // Still fill width within its given space
+            .fillMaxWidth()
             .height(406.dp)
-            // REMOVED: .padding(horizontal = 34.dp)
             .background(Color.White, RoundedCornerShape(10.dp))
     ){
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 26.dp, horizontal = 23.dp) // Internal padding remains
+                .padding(vertical = 26.dp, horizontal = 23.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -104,7 +109,16 @@ fun EditCommunityDialog(
                         .clip(RoundedCornerShape(20.dp)),
                 ) {
                     Button(
-                        onClick = { /* Handle save logic */ },
+                        onClick = {
+                            communityViewModel.updateCommunity(
+                                token,
+                                currentCommunity.communityId,
+                                communityName.ifBlank { null },
+                                communityDesc.ifBlank { null },
+                                null
+                            )
+                            onDismiss()
+                        },
                         modifier = Modifier
                             .width(50.dp)
                             .height(25.dp),
@@ -315,7 +329,15 @@ fun EditCommunityTypeField(
 @Preview
 @Composable
 fun EditCommunityPreview(){
+    val dummyCommunity = CommunityItem(
+        communityId = "c1", name = "Preview Community", description = "A nice preview.",
+        createdByUid = "u1", createdAt = "", image = null,
+        creatorName = "Preview Creator", creatorUsername = "previewcreator", memberCount = 10
+    )
     EditCommunityDialog(
+        token = "preview_token",
+        communityViewModel = viewModel(),
+        currentCommunity = dummyCommunity,
         onDismiss = {}
     )
 }

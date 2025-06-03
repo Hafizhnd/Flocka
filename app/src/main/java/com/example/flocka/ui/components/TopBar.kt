@@ -2,6 +2,7 @@ package com.yourpackage.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -17,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.flocka.R
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.sansationFontFamily
@@ -25,7 +30,9 @@ import com.example.flocka.ui.components.sansationFontFamily
 @Composable
 fun TopBar(
     username: String = "Your Name",
-    subtitle: String = "UI/UX Enthusiast"
+    subtitle: String = "UI/UX Enthusiast",
+    profileImageUrl: String? = null,
+    navController: NavController
 ) {
     Row(
         modifier = Modifier
@@ -40,14 +47,28 @@ fun TopBar(
             modifier = Modifier
                 .padding(start = 32.dp, top = 45.dp, bottom = 15.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.img_avatar),
-                contentDescription = "User Profile Picture",
-                modifier = Modifier
-                    .size(45.dp)
-                    .clip(CircleShape)
-                    .background(Color.White)
-            )
+            if (!profileImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = profileImageUrl,
+                    contentDescription = "User Profile Picture",
+                    modifier = Modifier
+                        .size(45.dp)
+                        .clip(CircleShape)
+                        .background(Color.Gray),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = R.drawable.img_avatar),
+                    error = painterResource(id = R.drawable.img_avatar)
+                )
+            }else {
+                Image(
+                    painter = painterResource(id = R.drawable.img_avatar),
+                    contentDescription = "User Profile Picture",
+                    modifier = Modifier
+                        .size(45.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -74,6 +95,7 @@ fun TopBar(
             modifier = Modifier
                 .size(20.dp)
                 .offset(y = 15.dp, x = (-30).dp)
+                .clickable(onClick = {navController.navigate("notification")})
         )
     }
 }
@@ -84,7 +106,8 @@ fun TopBarPreview() {
     Column(modifier = Modifier.background(BluePrimary)) {
         TopBar(
             username = "John Doe",
-            subtitle = "Mobile Developer Enthusiast"
+            subtitle = "Mobile Developer Enthusiast",
+            navController = rememberNavController()
         )
     }
 }

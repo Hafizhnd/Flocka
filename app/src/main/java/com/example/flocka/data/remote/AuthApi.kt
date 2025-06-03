@@ -1,5 +1,9 @@
-package com.example.flocka
+package com.example.flocka.data.remote
 
+import com.example.flocka.AuthResponse
+import com.example.flocka.LoginRequest
+import com.example.flocka.RegisterRequest
+import com.example.flocka.UpdateUserRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET

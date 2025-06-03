@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,12 +42,15 @@ fun ChatUIScreen(
                 }
             }
         }
+
         Image(
             painter = painterResource(id = R.drawable.ic_add_contact),
             contentDescription = "Add Contact",
             modifier = Modifier
-                .size(40.dp)
-                .clickable { onAddContact }
+                .size(50.dp)
+                .offset(x = (-26).dp, y = (-26).dp)
+                .align(Alignment.BottomEnd)
+                .clickable(onClick = onAddContact)
         )
     }
 }

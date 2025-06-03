@@ -26,10 +26,14 @@ import androidx.compose.material.icons.sharp.Groups
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,29 +41,66 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.flocka.R
+import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.alexandriaFontFamily
 import com.example.flocka.ui.components.sansationFontFamily
+import com.example.flocka.viewmodel.community.CommunityViewModel
 import com.yourpackage.ui.screens.BaseScreen
 import kotlin.math.round
 
 @Composable
 fun CommunityPage(
+    communityId: String,
+    token: String,
+    communityViewModel: CommunityViewModel = viewModel(),
     onBackClick: () -> Unit,
 ) {
     var showNewThreadDialog by remember { mutableStateOf(false) }
-    var showEditCommunityDialog by remember { mutableStateOf(false) } // New state for EditCommunityDialog
+    var showEditCommunityDialog by remember { mutableStateOf(false) }
+
+    val selectedCommunity by communityViewModel.selectedCommunity.collectAsState()
+    val errorMessage by communityViewModel.errorMessage.collectAsState()
+    val communityActionResult by communityViewModel.communityActionResult.collectAsState() // For join/leave feedback
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(key1 = communityId, key2 = token) {
+        if (token.isNotBlank() && communityId.isNotBlank()) {
+            communityViewModel.fetchCommunityById(token, communityId)
+        } else {
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(selectedCommunity, errorMessage) {
+        isLoading = false
+    }
+
+    LaunchedEffect(communityActionResult) {
+        communityActionResult?.let { result ->
+            if (result.isSuccess) {
+            } else {
+            }
+            communityViewModel.clearActionResult()
+        }
+    }
 
     BaseScreen {
         Box(
@@ -68,212 +109,226 @@ fun CommunityPage(
                 .then(if (showNewThreadDialog || showEditCommunityDialog) Modifier.blur(10.dp) else Modifier),
 
             ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(145.dp)
-                    .background(BluePrimary)
-                    .padding(horizontal = 15.dp)
-                    .padding(bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_arrow),
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(25.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Image(
-                    painterResource(id = R.drawable.ic_more),
-                    contentDescription = "More",
-                    modifier = Modifier.size(20.dp)
-                )
-
-                Spacer(modifier = Modifier.width(5.dp))
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 30.dp)
-                    .padding(top = 101.dp)
-            ) {
-                Icon(
-                    Icons.Sharp.Groups,
-                    contentDescription = "Community Icon",
-                    tint = Color(0xFFD3DAE4),
-                    modifier = Modifier
-                        .size(70.dp)
-                        .background(Color(0xFF1E3B75))
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(35.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "READER's HAVEN",
-                        fontFamily = sansationFontFamily,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Icon(
-                        Icons.Rounded.PersonAddAlt,
-                        contentDescription = "Add Member",
-                        tint = Color.White,
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (errorMessage != null) {
+                Text("Error: $errorMessage", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
+            } else {
+                selectedCommunity?.let { community ->
+                    Row(
                         modifier = Modifier
-                            .size(30.dp)
-                            .background(OrangePrimary, shape = CircleShape)
-                            .padding(5.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(5.dp))
-
-                    Button(
-                        onClick = { showEditCommunityDialog = true }, // Set state to true here
-                        modifier = Modifier
-                            .width(110.dp)
-                            .height(30.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BluePrimary,
-                            contentColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(0.dp)
+                            .fillMaxWidth()
+                            .height(145.dp)
+                            .background(BluePrimary)
+                            .padding(horizontal = 15.dp)
+                            .padding(bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_arrow),
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
                         Image(
-                            painter = painterResource(R.drawable.ic_edit),
-                            contentDescription = "edit",
-                            Modifier.size(13.dp)
+                            painterResource(id = R.drawable.ic_more),
+                            contentDescription = "More",
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text("Edit Community", fontSize = 10.sp, fontFamily = sansationFontFamily)
+
+                        Spacer(modifier = Modifier.width(5.dp))
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    "Tempat untuk semua pecinta buku! Kita berbagi review, rekomendasi, dan diskusi tentang buku-buku favorit. Baca, berbagi, bertumbuh.",
-                    fontFamily = alexandriaFontFamily,
-                    fontWeight = FontWeight.Light,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Justify,
-                    color = Color(0xFF808183),
-                    modifier = Modifier
-                        .width(281.dp)
-                        .height(36.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row {
-                    Text(
-                        "1 Member",
-                        fontFamily = sansationFontFamily,
-                        fontSize = 12.sp,
-                    )
-
-                    Spacer(modifier = Modifier.width(15.dp))
-
-                    Text(
-                        "• Public",
-                        fontFamily = sansationFontFamily,
-                        fontSize = 12.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp)
-                        .background(Color.White, shape = RoundedCornerShape(5.dp)),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.width(13.dp))
-
-                    Image(
-                        painter = painterResource(R.drawable.img_avatar),
-                        contentDescription = "profile image",
-                        modifier = Modifier
-                            .size(40.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(3.dp))
-
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(9.dp)
-                            .background(Color(0xFFEDF1F6), shape = RoundedCornerShape(5.dp))
-                            .clickable { showNewThreadDialog = true },
-                        contentAlignment = Alignment.CenterStart
+                            .padding(horizontal = 30.dp)
+                            .padding(top = 101.dp)
                     ) {
+                        AsyncImage(
+                            model = community.image?.let { RetrofitClient.BASE_URL.removeSuffix("/") + it },
+                            contentDescription = "Community Image",
+                            placeholder = painterResource(id = R.drawable.ic_no_image_placeholder),
+                            error = painterResource(id = R.drawable.ic_no_image_placeholder),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(70.dp).clip(CircleShape).background(Color(0xFF1E3B75))
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(35.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                community.name,
+                                fontFamily = sansationFontFamily,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Icon(
+                                Icons.Rounded.PersonAddAlt,
+                                contentDescription = "Add Member",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .background(OrangePrimary, shape = CircleShape)
+                                    .padding(5.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(5.dp))
+
+                            Button(
+                                onClick = {
+                                    showEditCommunityDialog = true
+                                },
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .height(30.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = BluePrimary,
+                                    contentColor = Color.White
+                                ),
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_edit),
+                                    contentDescription = "edit",
+                                    Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    "Edit Community",
+                                    fontSize = 10.sp,
+                                    fontFamily = sansationFontFamily
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
-                            "Write and send your thread",
-                            fontFamily = sansationFontFamily,
+                            text = community.description ?: "No description available for this community.", // Use the dynamic description
+                            fontFamily = alexandriaFontFamily,
+                            fontWeight = FontWeight.Light,
                             fontSize = 10.sp,
+                            textAlign = TextAlign.Justify,
                             color = Color(0xFF808183),
-                            modifier = Modifier.padding(start = 11.dp)
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 70.dp, bottom = 20.dp), // optional spacing from above
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_no_thread),
-                            contentDescription = "empty thread",
                             modifier = Modifier
-                                .size(90.dp)
+                                .fillMaxWidth()
                         )
 
-                        Spacer(modifier = Modifier.height(15.dp))
-                        Text(
-                            "No Contents Yet",
-                            fontFamily = sansationFontFamily,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BluePrimary
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                        Spacer(modifier = Modifier.height(7.dp))
-                        Text(
-                            "There is no content yet in this community. Write and send your first!",
-                            fontFamily = sansationFontFamily,
-                            fontSize = 12.sp,
-                            color = OrangePrimary,
-                            textAlign = TextAlign.Center,
+                        Row {
+                            Text(
+                                "${community.memberCount ?: 0} Member${if((community.memberCount ?: 0) != 1) "s" else ""}",
+                                fontFamily = sansationFontFamily, fontSize = 12.sp,
+                            )
+
+                            Spacer(modifier = Modifier.width(15.dp))
+
+                            Text(
+                                "• Public",
+                                fontFamily = sansationFontFamily,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
                             modifier = Modifier
-                                .width(270.dp)
-                        )
+                                .fillMaxWidth()
+                                .height(55.dp)
+                                .background(Color.White, shape = RoundedCornerShape(5.dp)),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(13.dp))
+
+                            Image(
+                                painter = painterResource(R.drawable.img_avatar),
+                                contentDescription = "profile image",
+                                modifier = Modifier
+                                    .size(40.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(3.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(9.dp)
+                                    .background(Color(0xFFEDF1F6), shape = RoundedCornerShape(5.dp))
+                                    .clickable { showNewThreadDialog = true },
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    "Write and send your thread",
+                                    fontFamily = sansationFontFamily,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF808183),
+                                    modifier = Modifier.padding(start = 11.dp)
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    top = 70.dp,
+                                    bottom = 20.dp
+                                ), // optional spacing from above
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Image(
+                                    painter = painterResource(R.drawable.ic_no_thread),
+                                    contentDescription = "empty thread",
+                                    modifier = Modifier
+                                        .size(90.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(15.dp))
+                                Text(
+                                    "No Contents Yet",
+                                    fontFamily = sansationFontFamily,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BluePrimary
+                                )
+
+                                Spacer(modifier = Modifier.height(7.dp))
+                                Text(
+                                    "There is no content yet in this community. Write and send your first!",
+                                    fontFamily = sansationFontFamily,
+                                    fontSize = 12.sp,
+                                    color = OrangePrimary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .width(270.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    // Show the NewThreadDialog when showNewThreadDialog is true
     if (showNewThreadDialog) {
         NewThreadDialog(
             onDismiss = { showNewThreadDialog = false }
@@ -282,9 +337,16 @@ fun CommunityPage(
 
     // Show the EditCommunityDialog when showEditCommunityDialog is true
     if (showEditCommunityDialog) {
-        EditCommunityDialog(
-            onDismiss = { showEditCommunityDialog = false }
-        )
+        selectedCommunity?.let { communityToEdit ->
+            Dialog(onDismissRequest = { showEditCommunityDialog = false}, properties = DialogProperties(usePlatformDefaultWidth = false) ) {
+                EditCommunityDialog(
+                    token = token,
+                    communityViewModel = communityViewModel,
+                    currentCommunity = communityToEdit,
+                    onDismiss = { showEditCommunityDialog = false }
+                )
+            }
+        }
     }
 }
 
@@ -292,6 +354,8 @@ fun CommunityPage(
 @Composable
 fun CommunityPagePreview() {
     CommunityPage(
+        token = "preview_token",
         onBackClick = {},
+        communityId = "preview_community_id",
     )
 }

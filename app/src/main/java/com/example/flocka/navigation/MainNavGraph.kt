@@ -1,12 +1,15 @@
 package com.example.flocka.navigation
 
+import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.flocka.profile.ui.EditProfileScreen
 import com.example.flocka.profile.ui.ProfileScreen
 import com.example.flocka.profile.ui.TicketScreen
@@ -17,19 +20,21 @@ import com.example.flocka.ui.chat.MessageScreenGroup
 import com.example.flocka.ui.chat.MessageScreenPrivate
 import com.example.flocka.ui.chat.domain.groupChat
 import com.example.flocka.ui.chat.domain.privateChat
-import com.example.flocka.ui.event_workspace.EventUI
 import com.example.flocka.ui.event_workspace.WorkspaceUI
 import com.example.flocka.ui.home.HomePage
 import com.example.flocka.ui.home.communities.CommunitiesMain
 import com.example.flocka.ui.home.communities.CommunityPage
+import com.example.flocka.ui.home.event.EventUI
 import com.example.flocka.ui.home.event.InfoEventUI
 import com.example.flocka.ui.home.event.InfoSpaceUI
+import com.example.flocka.ui.notification.FriendRequestUI
+import com.example.flocka.ui.notification.NotificationUI
 import com.example.flocka.ui.profile.mycommunities.MyCommunities
 import com.example.flocka.ui.profile.subscription.SubscriptionMain
-import com.yourpackage.ui.progress.ProgressMain
+import com.example.flocka.ui.progress.ProgressMain
 
 @Composable
-fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues) {
+fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues, token: String) {
     NavHost(
         navController = navController,
         startDestination = "home",
@@ -40,38 +45,92 @@ fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues)
             HomePage(
                 onSpaceClick = { navController.navigate("workspace") },
                 onEventClick = { navController.navigate("event") },
-                onSeeCommunities = { navController.navigate("communities") }
+                onSeeCommunities = { navController.navigate("communities") },
+                onCommunityClick = { navController.navigate("communityPage") },
             )
         }
 
+        composable("notification") {
+            NotificationUI(
+                onBackClick = { navController.popBackStack() },
+                onFriendRequestClick= { navController.navigate("friendRequest") }
+            )
+        }
+
+        composable("friendRequest") {
+            FriendRequestUI(
+                onBackClick = { navController.popBackStack() },
+            )
+        }
+
+        composable("progress") {
+            ProgressMain(
+                token = token)
+        }
+
         composable("communities") { CommunitiesMain(
-            onBackClick = { navController.popBackStack()},
-            onCommunityCardClick = { navController.navigate("communityPage") },
-            onCommunityCreationComplete = { navController.navigate("communityPage") } // Assuming this leads to communityPage
+            token = token,
+            onBackClick = { navController.popBackStack() },
+            onCommunityClick = { communityId ->
+                navController.navigate("community_page/$communityId")
+            },
+            onCommunityCreationComplete = { newCommunityId ->
+                navController.navigate("community_page/$newCommunityId") {
+                }
+            }
         )}
 
-        composable("communityPage") {
+        composable(
+            route = "community_page/{communityId}",
+            arguments = listOf(navArgument("communityId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val communityId = backStackEntry.arguments?.getString("communityId") ?: ""
             CommunityPage(
+                communityId = communityId,
+                token = token,
                 onBackClick = { navController.popBackStack() }
             )
         }
 
         composable("workspace") { WorkspaceUI(
+            token = token,
             onBackClick = { navController.popBackStack() },
-            onSpaceCardClick = {navController.navigate("infoSpace")}
+            onSpaceCardClick = { spaceId ->
+                navController.navigate("space_detail/$spaceId")
+            }
         )}
 
-        composable("infoSpace") { InfoSpaceUI(
-            onBackClick = { navController.popBackStack() }
-        ) }
+        composable(route = "space_detail/{spaceId}",
+            arguments = listOf(navArgument("spaceId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val spaceId = backStackEntry.arguments?.getString("spaceId") ?: ""
+            InfoSpaceUI(
+                spaceId = spaceId,
+                token = token,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
 
         composable("event") { EventUI(
+            token = token,
             onBackClick = { navController.popBackStack() },
-            onEventCardClick = {navController.navigate("infoEvent")}
+            onEventCardClick = { eventId ->
+                navController.navigate("event_detail/$eventId")
+            }
         ) }
 
-        composable("infoEvent") { InfoEventUI {
-        } }
+        composable(
+            route = "event_detail/{eventId}",
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            Log.d("EventFlow", "Navigating to InfoEventUI. Received eventId: $eventId")
+            InfoEventUI(
+                eventId = eventId,
+                token = token,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
 
         composable("chat") {
             ChatUIScreen(
@@ -90,37 +149,63 @@ fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues)
             onBackClick = { navController.popBackStack() }
         )}
 
-        composable("chatGroup") { MessageScreenGroup(messages = groupChat.messages) }
-        composable("chatPrivate") { MessageScreenPrivate(messages = privateChat.messages) }
+        composable("chatGroup") { MessageScreenGroup(
+            messages = groupChat.messages,
+            title = groupChat.title,
+            subtitle = "UI Designer",
+            onBackClick = { navController.popBackStack() }
+        ) }
+        composable("chatPrivate") { MessageScreenPrivate(
+            messages = privateChat.messages,
+            title = privateChat.title,
+            subtitle = "UI Designer",
+            onBackClick = { navController.popBackStack() }
+        ) }
 
         composable("people") { PeoplePage() }
-        composable("progress") { ProgressMain() }
+        composable("progress") { ProgressMain(
+            token = token
+        ) }
 
         composable("profile") { ProfileScreen(
+            token = token,
             onEditProfileClick = { navController.navigate("editProfile") },
             onMyCommunityClick = { navController.navigate("myCommunity") },
             onOrderClick = { navController.navigate("order") },
             onSettingsClick = { /* Handle settings navigation */ },
             onHelpClick = { /* Handle help navigation */ },
             onLanguageClick = { /* Handle language navigation */ },
-            onSubscriptionClick = { navController.navigate("subscriptionMain") }
+            onSubscriptionClick = { navController.navigate("subscriptionMain") },
+            onLogoutClick = {
+                navController.navigate("login") {
+                    popUpTo(navController.graph.startDestinationRoute ?: "splash") {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            }
         )
         }
 
-        composable("editProfile") { EditProfileScreen(
-            onBackClick = { navController.popBackStack() }
-        )}
+        composable("editProfile") {
+            EditProfileScreen(
+                onBackClick = { navController.popBackStack() },
+                onDoneClick = {
+                    navController.popBackStack()
+                },
+                token = token
+            )
+        }
 
         composable("myCommunity") { MyCommunities(
             onBackClick = { navController.popBackStack() },
-            onCommunityCardClick = { navController.navigate("communityPage") }
+            onCommunityClick = { navController.navigate("communityPage") }
         )}
 
         composable("order") { TicketScreen(
             onBackClick = { navController.popBackStack() }
         )}
 
-        // SubscriptionMain is still a regular route
         composable("subscriptionMain") { SubscriptionMain(
             onBackClick = { navController.popBackStack() }
         )}

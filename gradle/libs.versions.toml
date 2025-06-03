@@ -4,6 +4,7 @@ accompanistFlowlayoutVersion = "0.36.0"
 accompanistPager = "0.28.0"
 agp = "8.9.2"
 coilCompose = "2.6.0"
+coreSplashscreen = "1.0.1"
 foundation = "1.8.2"
 kotlin = "2.0.21"
 
@@ -43,6 +44,7 @@ uiTextGoogleFonts = "1.8.2"
 accompanist-flowlayout-v0360 = { module = "com.google.accompanist:accompanist-flowlayout", version.ref = "accompanistFlowlayoutVersion" }
 accompanist-pager = { module = "com.google.accompanist:accompanist-pager", version.ref = "accompanistPager" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }

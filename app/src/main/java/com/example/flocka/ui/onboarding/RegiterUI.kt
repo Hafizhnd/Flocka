@@ -24,13 +24,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flocka.AuthViewModel
+import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.R
 import com.example.flocka.User
 import com.example.flocka.ui.components.alexandriaFontFamily
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.sansationFontFamily
+
 
 @Composable
 fun RegisterUI(
@@ -309,10 +310,9 @@ fun Input(
         ) {
             Text(
                 label,
-                fontSize = 11.sp,
+                fontSize = 13.sp,
                 fontFamily = sansationFontFamily,
                 fontWeight = FontWeight.Normal,
-                color = Color.Gray
             )
         }
     }

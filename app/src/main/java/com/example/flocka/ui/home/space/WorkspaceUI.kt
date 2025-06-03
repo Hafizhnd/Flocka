@@ -2,10 +2,16 @@ package com.example.flocka.ui.event_workspace
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AttachMoney
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,22 +23,53 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.flocka.R
+import com.example.flocka.data.model.SpaceItem
+import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.ui.components.BluePrimary
+import com.example.flocka.ui.components.OrangePrimary
+import com.example.flocka.ui.components.alexandriaFontFamily
+import com.example.flocka.ui.components.sansationFontFamily
+import com.example.flocka.viewmodel.SpaceViewModel
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 
 @Composable
 fun WorkspaceUI(
+    token: String,
+    spaceViewModel: SpaceViewModel = viewModel(),
     onBackClick: () -> Unit,
-    onSpaceCardClick: () -> Unit
+    onSpaceCardClick: (spaceId: String) -> Unit
 ) {
+    val spaces by spaceViewModel.spaces.collectAsState()
+    val errorMessage by spaceViewModel.errorMessage.collectAsState()
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(key1 = token) {
+        if (token.isNotBlank()) {
+            spaceViewModel.fetchSpaces(token)
+        } else {
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(spaces, errorMessage) {
+        isLoading = false
+    }
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFEDF1F6))
     ) {
         // Header
         Box(
@@ -59,15 +96,15 @@ fun WorkspaceUI(
                     contentAlignment = Alignment.Center
 
                 ) {
-                    // "EVENT" 100% di tengah layar
                     Text(
                         "SPACE",
-                        fontSize = 20.sp,
+                        fontSize = 25.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
+                        fontFamily = alexandriaFontFamily
                     )
 
-                    // Tombol Back diletakkan di kiri tanpa menggeser teks
+
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.CenterStart
@@ -102,7 +139,7 @@ fun WorkspaceUI(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 30.dp)
                 .padding(top = 175.dp)
                 .shadow(20.dp, shape = RoundedCornerShape(30.dp))
                 .background(Color.White, shape = RoundedCornerShape(30.dp))
@@ -136,97 +173,145 @@ fun WorkspaceUI(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Event List (Placeholder)
-        Column(modifier = Modifier.padding(horizontal = 16.dp)
-            .padding(top= 240.dp)
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 30.dp)
+                .padding(top = 240.dp)
         ) {
-            repeat(5) {
-                SpaceCard(onClick = onSpaceCardClick)
-                Spacer(modifier = Modifier.height(8.dp))
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 20.dp))
+            } else if (errorMessage != null) {
+                Text("Error: $errorMessage", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
+            } else if (spaces.isEmpty()) {
+                Text("No spaces found.", modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(spaces, key = { it.spaceId }) { space ->
+                        SpaceCard(
+                            space = space,
+                            spaceViewModel = spaceViewModel,
+                            onClick = { onSpaceCardClick(space.spaceId) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun SpaceCard(onClick: () -> Unit) {
+fun SpaceCard(
+    space: SpaceItem,
+    spaceViewModel: SpaceViewModel,
+    onClick: () -> Unit
+) {
+    val openingTimeFormatted = spaceViewModel.formatDisplayTime(space.openingTime)
+    val closingTimeFormatted = spaceViewModel.formatDisplayTime(space.closingTime)
+    val symbols = remember { DecimalFormatSymbols(Locale.GERMANY) }
+    val idrFormat = remember { DecimalFormat("Rp #,##0", symbols) }
+    val costFormatted = space.costPerHour?.let { cost ->
+        if (cost > 0.0) "${idrFormat.format(cost)}/Hour" else "Free"
+    } ?: "N/A"
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight() // Tinggi card disesuaikan
-            .padding(8.dp),
-        shape = RoundedCornerShape(8.dp),
+            .wrapContentHeight()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Row(modifier = Modifier) {
-            // Gambar persegi penuh di sisi kiri
+        Row{
             Box(
                 modifier = Modifier
                     .width(110.dp)
                     .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp))
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.cowork3), // Ganti dengan gambar Anda
-                    contentDescription = "Event image",
+                AsyncImage(
+                    model = space.image?.let { RetrofitClient.BASE_URL.removeSuffix("/") + it },
+                    contentDescription = space.name,
+                    placeholder = painterResource(id = R.drawable.cowork3),
+                    error = painterResource(id = R.drawable.cowork3),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
-            // Bagian teks di sebelah kanan
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Badge EVENT
                 Box(
                     modifier = Modifier
-                        .background(BluePrimary, shape = RoundedCornerShape(10.dp))
+                        .background(OrangePrimary, shape = RoundedCornerShape(10.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
-                    Text(
-                        text = "SPACE",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("SPACE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = sansationFontFamily)
                 }
 
-                // Judul event
                 Text(
-                    text = "Space Title",
+                    text = space.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = sansationFontFamily,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                // Pembicara
-
-                // Lokasi dan waktu
                 Text(
-                    text = "Gedung BEI Tower 1 Level 3, Unit 304, Daerah Khusus Ibukota Jakarta 12190",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color.Gray
-
+                    text = space.location,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    fontFamily = sansationFontFamily,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth()
-                    ,
-                    horizontalArrangement = Arrangement.End // Posisi ke kanan
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AttachMoney,
+                        contentDescription = "Cost",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+
                     Text(
-                        text = "$1.50/Hours | 9AM-12AM",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal,
-                        textAlign = TextAlign.End, // Pastikan teks sejajar ke kanan
-                        modifier = Modifier.padding(end = 8.dp) // Jarak dari tepi kanan
+                        text = costFormatted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = sansationFontFamily,
+                        color = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Icon(
+                        imageVector = Icons.Rounded.Schedule,
+                        contentDescription = "Hours",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(15.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(2.dp))
+
+                    Text(
+                        text = "$openingTimeFormatted - $closingTimeFormatted",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = sansationFontFamily,
+                        color = Color.Gray
                     )
                 }
-
             }
         }
     }
@@ -236,6 +321,7 @@ fun SpaceCard(onClick: () -> Unit) {
 @Composable
 fun WorkSpaceUIPreview() {
     WorkspaceUI(
+        token = "preview_token",
         onBackClick = {},
         onSpaceCardClick = {}
     )

@@ -5,15 +5,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.flocka.ui.chat.components.*
 import com.example.flocka.ui.chat.domain.Message
 import com.example.flocka.ui.chat.domain.groupChat
 
 @Composable
 fun MessageScreenGroup (
-    messages: List<Message>
+    messages: List<Message>,
+    title: String,
+    subtitle: String,
+    onBackClick: () -> Unit
 ) {
     var chatMessages by remember { mutableStateOf(messages) }
 
@@ -22,6 +27,12 @@ fun MessageScreenGroup (
             .fillMaxSize()
             .background(Color(0xFFEDF1F6))
     ) {
+
+        MessageHeader(
+            username = title,
+            subtitle = subtitle,
+            onBackClick = onBackClick
+        )
 
         Column(
             modifier = Modifier
@@ -56,6 +67,9 @@ fun MessageScreenGroup (
 @Composable
 fun PreviewMessageScreenGroup() {
     MessageScreenGroup(
-        messages = groupChat.messages
+        messages = groupChat.messages,
+        title = groupChat.title,
+        subtitle = "UI Designer",
+        onBackClick = {}
     )
 }

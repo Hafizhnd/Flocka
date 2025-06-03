@@ -2,7 +2,7 @@ package com.example.flocka.viewmodel.interest
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.flocka.RetrofitClient
+import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.data.model.Interest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,6 @@ class InterestViewModel : ViewModel() {
     val searchResults: StateFlow<List<Interest>> = _searchResults
 
     fun searchInterests(token: String, query: String) {
-        // Don't search for very short strings
         if (query.length < 2) {
             _searchResults.value = emptyList()
             return
@@ -25,7 +24,7 @@ class InterestViewModel : ViewModel() {
                     _searchResults.value = response.body()?.data ?: emptyList()
                 }
             } catch (e: Exception) {
-                // Handle exceptions, maybe log them or show an error
+
             }
         }
     }

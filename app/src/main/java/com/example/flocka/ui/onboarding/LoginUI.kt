@@ -2,7 +2,6 @@ package com.example.flocka.ui.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -39,15 +36,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flocka.AuthViewModel
+import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.R
 import com.example.flocka.User
 import com.example.flocka.ui.components.BluePrimary
@@ -85,7 +79,6 @@ fun LoginUI(
             result.onFailure { exception ->
                 showError = exception.message ?: "An unknown error occurred."
             }
-            // Reset the result in the ViewModel to prevent re-triggering
             authViewModel.loginResult = null
         }
     }
@@ -129,7 +122,7 @@ fun LoginUI(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            InputField(
+            Input(
                 value = email,
                 onValueChange = { email = it },
                 label = "Email",
@@ -138,7 +131,7 @@ fun LoginUI(
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            InputField(
+            Input(
                 value = password,
                 onValueChange = { password = it },
                 label = "Password",
@@ -247,62 +240,6 @@ fun LoginUI(
                 }
             }
         )
-    }
-}
-
-@Composable
-fun InputField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    isPassword: Boolean = false,
-    passwordVisible: Boolean = false,
-    onTogglePassword: (() -> Unit)? = null
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 33.dp)
-    ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            textStyle = TextStyle(fontSize = 13.sp, fontFamily = sansationFontFamily),
-            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(43.dp)
-                .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 24.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text = placeholder,
-                            fontSize = 13.sp,
-                            fontFamily = sansationFontFamily,
-                            color = Color(0xFFD1D0D0)
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        )
-
-        Box(
-            modifier = Modifier
-                .offset(x = 24.dp, y = (-6).dp)
-                .background(Color.White)
-                .padding(start = 4.dp, end = 3.dp)
-        ) {
-            Text(label, fontSize = 11.sp, fontFamily = sansationFontFamily)
-        }
     }
 }
 

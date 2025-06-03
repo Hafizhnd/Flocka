@@ -7,6 +7,7 @@ import android.view.WindowInsetsController
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import com.example.flocka.navigation.RootNavGraph
 
@@ -14,10 +15,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Allow drawing behind system bars
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Hide system bars (navigation + status) with compatibility
         hideSystemUI()
 
         setContent {
@@ -28,7 +27,6 @@ class MainActivity : ComponentActivity() {
 
     private fun hideSystemUI() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+ (API 30+)
             window.insetsController?.let {
                 it.hide(WindowInsets.Type.systemBars())
                 it.systemBarsBehavior =

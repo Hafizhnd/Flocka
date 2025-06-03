@@ -4,38 +4,67 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.R
+import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.sansationFontFamily
 
 @Composable
 fun ProfileScreen(
+    authViewModel: AuthViewModel = viewModel(),
+    token: String,
     onEditProfileClick: () -> Unit,
     onMyCommunityClick: () -> Unit,
     onOrderClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onHelpClick: () -> Unit,
     onLanguageClick: () -> Unit,
-    onSubscriptionClick: () -> Unit
+    onSubscriptionClick: () -> Unit,
+    onLogoutClick: () -> Unit
 ) {
+    val userProfile by authViewModel.userProfile.collectAsState()
+
+    LaunchedEffect(key1 = token) {
+        if (userProfile == null && token.isNotBlank()) {
+            authViewModel.fetchUserProfile(token)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,26 +82,39 @@ fun ProfileScreen(
             ) {
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Image(
-                    painter = painterResource(id = R.drawable.img_avatar),
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, Color.White, CircleShape)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                val fullProfileImageUrl = userProfile?.profile_image_url?.let { relativePath ->
+                    RetrofitClient.BASE_URL.removeSuffix("/") + relativePath
+                }
+
+                if (!fullProfileImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = fullProfileImageUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color.White, CircleShape)
+                            .background(Color.Gray), // Placeholder color
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.img_avatar),
+                        error = painterResource(id = R.drawable.img_avatar)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_avatar),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, Color.White, CircleShape)
+                    )
+                }
+                Spacer(modifier = Modifier.height(11.dp))
                 Text(
-                    "Benny Jeans",
+                    userProfile?.name ?: "User Name", // Display fetched name
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = sansationFontFamily
-                )
-                Text(
-                    "UI / UX Enthusiast",
-                    color = Color.White,
-                    fontSize = 15.sp,
                     fontFamily = sansationFontFamily
                 )
             }
@@ -116,7 +158,10 @@ fun ProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { /* handle logout */ }
+                    .clickable {
+                        authViewModel.logout()
+                        onLogoutClick()
+                    }
                     .padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -168,12 +213,14 @@ fun ProfileMenuItemCustom(title: String, iconRes: Int, onClick: () -> Unit) {
 @Composable
 fun ProfilePreview(){
     ProfileScreen(
+        token = "preview_token",
         onEditProfileClick= {},
         onMyCommunityClick= {},
         onOrderClick= {},
         onSettingsClick= {},
         onHelpClick= {},
         onLanguageClick= {},
-        onSubscriptionClick = {}
+        onSubscriptionClick = {},
+        onLogoutClick = {}
     )
 }
