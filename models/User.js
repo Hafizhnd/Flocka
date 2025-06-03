@@ -128,6 +128,54 @@ class User {
         throw error;
     }
   }
+
+  static async updateStreak(userId) {
+    try {
+      const [rows] = await db.query(
+        'SELECT current_streak, last_quiz_completed_date FROM users WHERE uid = ?',
+        [userId]
+      );
+      if (!rows.length) {
+        throw new Error('User not found for streak update');
+      }
+
+      const userStreakData = rows[0];
+      let currentStreak = userStreakData.current_streak;
+      const lastCompletedDateStr = userStreakData.last_quiz_completed_date 
+        ? new Date(userStreakData.last_quiz_completed_date).toISOString().slice(0,10) 
+        : null;
+
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      
+      if (lastCompletedDateStr !== todayStr) {
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+        if (lastCompletedDateStr === yesterdayStr) {
+          currentStreak++;
+        } else {
+          currentStreak = 1;
+        }
+        
+        await db.query(
+          'UPDATE users SET current_streak = ?, last_quiz_completed_date = ? WHERE uid = ?',
+          [currentStreak, todayStr, userId]
+        );
+      }
+
+      const updatedUser = await this.getSafeUserByUid(userId); 
+      return {
+        current_streak: updatedUser.current_streak, 
+        last_quiz_completed_date: updatedUser.last_quiz_completed_date
+      };
+
+    } catch (error) {
+      console.error('Error updating streak:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = User;

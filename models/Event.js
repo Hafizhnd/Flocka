@@ -37,7 +37,7 @@ class Event {
     try {
       const [events] = await db.query(
         `SELECT e.*, u.name as organizer_name, u.username as organizer_username,
-         (SELECT COUNT(*) FROM orders WHERE item_type = 'event' AND item_id = e.event_id AND status = 'active') as participant_count
+         (SELECT COUNT(*) FROM orders WHERE item_type = 'event' AND item_id = e.event_id) as participant_count
          FROM events e
          JOIN users u ON e.organizer = u.uid
          WHERE e.event_id = ?`,
@@ -54,7 +54,7 @@ class Event {
     try {
       const [events] = await db.query(
         `SELECT e.*, u.name as organizer_name, u.username as organizer_username,
-         (SELECT COUNT(*) FROM orders WHERE item_type = 'event' AND item_id = e.event_id AND status = 'active') as participant_count
+         (SELECT COUNT(*) FROM orders WHERE item_type = 'event' AND item_id = e.event_id) as participant_count
          FROM events e
          JOIN users u ON e.organizer = u.uid
          WHERE e.organizer = ?
@@ -88,7 +88,7 @@ class Event {
     try {
       const [events] = await db.query(
         `SELECT e.*, u.name as organizer_name, u.username as organizer_username,
-         (SELECT COUNT(*) FROM orders WHERE item_type = 'event' AND item_id = e.event_id AND status = 'active') as participant_count
+         (SELECT COUNT(*) FROM orders WHERE item_type = 'event' AND item_id = e.event_id) as participant_count
          FROM events e
          JOIN users u ON e.organizer = u.uid
          WHERE e.start_time < NOW()
