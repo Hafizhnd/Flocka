@@ -1,64 +1,64 @@
-// quiz/QuizStateManager.kt
 package com.example.flocka.ui.home.quiz
 
+import android.util.Log
 import androidx.compose.runtime.*
+import com.example.flocka.data.model.QuizQuestion
+import com.example.flocka.viewmodel.quiz.QuizViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 enum class QuizDialogType {
-    PROMPT,          // "QUIZ TIME, Do you want to do your quiz?"
-    REMIND_LATER,    // "Remind you later?"
-    LOSE_STREAK,     // "NOOO!!! You just lose your streak."
-    LETS_START,      // "Let’s Start!!" (timed)
-    QUESTION,        // Quiz questions
-    SHOWING_ANSWER,  // Intermediate state to show correct/incorrect answers
-    CONGRATULATIONS, // "CONGRATULATIONS!! You just finish your quiz."
-    NONE             // No dialog visible
+    PROMPT,
+    REMIND_LATER,
+    LOSE_STREAK,
+    LETS_START,
+    QUESTION,
+    SHOWING_ANSWER,
+    CONGRATULATIONS,
+    NONE
 }
 
-class QuizStateManager(private val coroutineScope: CoroutineScope) {
+class QuizStateManager(
+    private val coroutineScope: CoroutineScope,
+    val quizViewModel: QuizViewModel,
+    private val tokenProvider: () -> String?
+) {
     var currentDialog by mutableStateOf(QuizDialogType.NONE)
-    var currentQuestionIndex by mutableStateOf(0)
-    var selectedAnswerByUser by mutableStateOf<String?>(null) // Store the text of the selected answer
-    var isAnswerRevealed by mutableStateOf(false) // To control color change and timed transition
+    var currentQuestion by mutableStateOf<QuizQuestion?>(null)
 
-    private var transitionJob: Job? = null // To manage timed transitions
+    var selectedAnswerByUser by mutableStateOf<String?>(null)
+    var isAnswerRevealed by mutableStateOf(false)
+    var lastQuizResultIsCorrect by mutableStateOf<Boolean?>(null)
 
-    data class Question(
-        val questionText: String,
-        val options: List<String>,
-        val correctAnswerText: String // Store the correct answer text
-    )
+    private var transitionJob: Job? = null
+    private var questionCollectionJob: Job? = null
 
-    // Updated question to match your example
-    val questions = listOf(
-        Question(
-            "What does UX stands for?",
-            listOf("User Xperience", "User Exploration", "User Experience", "Universal Exchange"),
-            correctAnswerText = "User Experience"
-        )
-        // Add more questions if needed
-    )
-
-    fun getCurrentQuestion(): Question? {
-        return questions.getOrNull(currentQuestionIndex)
+    fun getCurrentQuestionFromViewModel(): QuizQuestion? {
+        return currentQuestion
     }
 
-    fun getCurrentOptions(): List<String> {
-        return getCurrentQuestion()?.options ?: emptyList()
+    private fun cancelTransition() {
+        transitionJob?.cancel()
+        transitionJob = null
     }
 
-    fun isCorrect(selectedOption: String): Boolean {
-        return getCurrentQuestion()?.correctAnswerText == selectedOption
+    private fun clearQuestionStateAndCancelJobs() {
+        questionCollectionJob?.cancel()
+        questionCollectionJob = null
+        currentQuestion = null
     }
 
     fun showPrompt() {
         cancelTransition()
-        currentDialog = QuizDialogType.PROMPT
+        clearQuestionStateAndCancelJobs()
         isAnswerRevealed = false
         selectedAnswerByUser = null
+        lastQuizResultIsCorrect = null
+        currentDialog = QuizDialogType.PROMPT
     }
 
     fun handlePromptAnswer(yes: Boolean) {
@@ -73,9 +73,9 @@ class QuizStateManager(private val coroutineScope: CoroutineScope) {
     fun handleRemindLaterAnswer(yes: Boolean) {
         cancelTransition()
         if (yes) {
-            // Here you would typically schedule a notification or some other reminder logic
-            dismissDialog() // For now, just dismiss
+            dismissDialog()
         } else {
+            clearQuestionStateAndCancelJobs()
             currentDialog = QuizDialogType.LOSE_STREAK
         }
     }
@@ -85,55 +85,62 @@ class QuizStateManager(private val coroutineScope: CoroutineScope) {
         currentDialog = QuizDialogType.LETS_START
         transitionJob = coroutineScope.launch {
             delay(3000)
-            if (currentDialog == QuizDialogType.LETS_START) { // Ensure we are still in this state
-                startQuiz()
+            if (currentDialog == QuizDialogType.LETS_START) {
+                startQuizAttempt()
             }
         }
     }
 
-    fun startQuiz() {
+    fun startQuizAttempt() {
         cancelTransition()
-        currentQuestionIndex = 0
+        clearQuestionStateAndCancelJobs()
+
         selectedAnswerByUser = null
         isAnswerRevealed = false
+        lastQuizResultIsCorrect = null
         currentDialog = QuizDialogType.QUESTION
+
+        val tokenValue = tokenProvider()
+        Log.d("QuizStateManager", "Attempting to start quiz. Token from provider: ${tokenValue?.take(10)}...")
+
+        if (tokenValue != null && tokenValue.isNotBlank()) {
+            Log.d("QuizStateManager", "Token is valid. Fetching quiz question.")
+            quizViewModel.fetchQuizQuestion(tokenValue)
+
+            questionCollectionJob = coroutineScope.launch {
+                quizViewModel.currentQuestion.collect { fetchedQuestionFromVM ->
+                    currentQuestion = fetchedQuestionFromVM
+                    Log.d("QuizStateManager", "Collected question from ViewModel: ${fetchedQuestionFromVM?.quizId}")
+                }
+            }
+        } else {
+            Log.e("QuizStateManager", "Token is null or blank in startQuizAttempt. Token: '$tokenValue'. Dismissing dialog.")
+            dismissDialog()
+        }
     }
 
     fun selectAnswer(option: String) {
-        if (!isAnswerRevealed) { // Allow selection only if answers are not yet revealed
+        if (!isAnswerRevealed && currentQuestion != null) {
             selectedAnswerByUser = option
-            isAnswerRevealed = true // Reveal answers immediately for color change
-            // Transition after 3 seconds to the next state
+
+            tokenProvider()?.let { token ->
+                quizViewModel.submitAnswer(token, currentQuestion!!.quizId, option)
+            }
+
+            transitionJob?.cancel()
             transitionJob = coroutineScope.launch {
-                delay(3000)
-                if (currentDialog == QuizDialogType.QUESTION && isAnswerRevealed) {
-                    // For a single question quiz, go to congratulations
-                    // If multiple questions, you'd go to nextQuestion() or similar
-                    if (currentQuestionIndex == questions.lastIndex) {
+                quizViewModel.quizResult.filterNotNull().first().let { resultData ->
+                    lastQuizResultIsCorrect = resultData.isCorrect
+                    isAnswerRevealed = true
+                    delay(3000)
+                    if (currentDialog == QuizDialogType.QUESTION && isAnswerRevealed) {
                         showCongratulations()
-                    } else {
-                        // Implement nextQuestion logic if needed
-                        // nextQuestion()
-                        showCongratulations() // Placeholder for now
                     }
                 }
+                quizViewModel.clearQuizResult()
             }
         }
     }
-
-    // Call this if you had a "Next Question" button or for multi-question flow
-    fun moveToNextPhase() {
-        cancelTransition()
-        if (currentQuestionIndex < questions.size - 1) {
-            currentQuestionIndex++
-            selectedAnswerByUser = null
-            isAnswerRevealed = false
-            currentDialog = QuizDialogType.QUESTION
-        } else {
-            showCongratulations()
-        }
-    }
-
 
     private fun showCongratulations() {
         cancelTransition()
@@ -142,13 +149,11 @@ class QuizStateManager(private val coroutineScope: CoroutineScope) {
 
     fun dismissDialog() {
         cancelTransition()
+        clearQuestionStateAndCancelJobs()
         currentDialog = QuizDialogType.NONE
         isAnswerRevealed = false
         selectedAnswerByUser = null
-    }
-
-    private fun cancelTransition() {
-        transitionJob?.cancel()
-        transitionJob = null
+        lastQuizResultIsCorrect = null
+        quizViewModel.clearQuizResult()
     }
 }

@@ -45,7 +45,6 @@ fun QuizBaseDialog(
                 .align(Alignment.Center)
                 .padding(horizontal = 32.dp)
         ) {
-            // Background image (card-style)
             Image(
                 painter = painterResource(id = backgroundRes),
                 contentDescription = null,

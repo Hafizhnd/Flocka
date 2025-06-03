@@ -39,11 +39,13 @@ class AuthViewModel : ViewModel() {
     val token: StateFlow<String?> = _token.asStateFlow()
 
     fun setToken(newToken: String?) {
-        Log.d("AuthViewModel", "Setting token: ${newToken?.take(10)}...")
+        Log.d("AuthViewModel", "setToken CALLED. Current token: ${_token.value?.take(10)}..., New token: ${newToken?.take(10)}...")
         _token.value = newToken
         if (!newToken.isNullOrBlank()) {
+            Log.d("AuthViewModel", "New token is VALID. Fetching user profile.")
             fetchUserProfile(newToken)
         } else {
+            Log.d("AuthViewModel", "New token is NULL or BLANK. Clearing user profile.")
             _userProfile.value = null
         }
     }

@@ -46,7 +46,7 @@ fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues,
                 onSpaceClick = { navController.navigate("workspace") },
                 onEventClick = { navController.navigate("event") },
                 onSeeCommunities = { navController.navigate("communities") },
-                onCommunityClick = { navController.navigate("communityPage") },
+                token = token,
             )
         }
 
@@ -202,9 +202,12 @@ fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues,
             onCommunityClick = { navController.navigate("communityPage") }
         )}
 
-        composable("order") { TicketScreen(
-            onBackClick = { navController.popBackStack() }
-        )}
+        composable("order") {
+            TicketScreen(
+                token = token,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
 
         composable("subscriptionMain") { SubscriptionMain(
             onBackClick = { navController.popBackStack() }

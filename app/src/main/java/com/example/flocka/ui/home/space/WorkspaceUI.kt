@@ -36,7 +36,7 @@ import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.alexandriaFontFamily
 import com.example.flocka.ui.components.sansationFontFamily
-import com.example.flocka.viewmodel.SpaceViewModel
+import com.example.flocka.viewmodel.space.SpaceViewModel
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale

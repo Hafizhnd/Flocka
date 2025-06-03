@@ -1,17 +1,16 @@
-package com.example.flocka.viewmodel
+package com.example.flocka.viewmodel.space
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.flocka.data.remote.RetrofitClient // Ensure correct import for RetrofitClient
 import com.example.flocka.data.model.SpaceItem
+import com.example.flocka.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class SpaceViewModel : ViewModel() {

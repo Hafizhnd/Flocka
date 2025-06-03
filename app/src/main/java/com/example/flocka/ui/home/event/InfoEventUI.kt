@@ -66,6 +66,7 @@ import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.payment.PaymentMethods
 import com.example.flocka.ui.components.sansationFontFamily
+import com.example.flocka.viewmodel.OrderViewModel
 import com.example.flocka.viewmodel.event.EventViewModel
 import java.util.Calendar
 
@@ -311,15 +312,18 @@ fun InfoEventUI(
             }
         )
     }
-    if (showPaymentDialog) {
+    if (showPaymentDialog && selectedEvent != null) {
+        val orderViewModel: OrderViewModel = viewModel()
         PaymentMethodDialog(
             onDismiss = { showPaymentDialog = false },
             onPay = {
+                orderViewModel.createOrderForEvent(token, selectedEvent!!)
                 showPaymentDialog = false
                 showPaymentSuccess = true
             }
         )
     }
+
     if (showPaymentSuccess) {
         SuccessPopup(
             onFinish = { showPaymentSuccess = false }

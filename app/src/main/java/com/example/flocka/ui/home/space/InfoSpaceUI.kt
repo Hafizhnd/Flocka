@@ -1,6 +1,7 @@
 package com.example.flocka.ui.home.event
 
 import android.app.DatePickerDialog
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -66,7 +67,8 @@ import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.payment.PaymentMethods
 import com.example.flocka.ui.components.sansationFontFamily
-import com.example.flocka.viewmodel.SpaceViewModel
+import com.example.flocka.viewmodel.OrderViewModel
+import com.example.flocka.viewmodel.space.SpaceViewModel
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Calendar
@@ -175,7 +177,7 @@ fun InfoSpaceUI(
                                 } ?: "Price not available"
                                 InfoDetailRow(icon = Icons.Rounded.AttachMoney, text = costText)
                                 Spacer(modifier = Modifier.width(5.dp))
-    
+
                                 val openingTime = spaceViewModel.formatDisplayTime(space.openingTime)
                                 val closingTime = spaceViewModel.formatDisplayTime(space.closingTime)
                                 InfoDetailRow(icon = Icons.Rounded.Schedule, text = "$openingTime - $closingTime")
@@ -232,10 +234,33 @@ fun InfoSpaceUI(
             }
         )
     }
-    if (showPaymentDialog) {
+
+    if (showPaymentDialog && selectedSpace != null) {
+        val orderViewModel: OrderViewModel = viewModel()
+        val calendar = Calendar.getInstance()
+
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val month = calendar.get(Calendar.MONTH)
+        val year = calendar.get(Calendar.YEAR)
+        val bookedDateStr = String.format(Locale.getDefault(), "%02d/%02d/%04d", day, month + 1, year)
+
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val minute = calendar.get(Calendar.MINUTE) // Use current minute
+        val startTimeStr = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+
+        val durationHoursInt = 1
+
         PaymentMethodDialog(
             onDismiss = { showPaymentDialog = false },
             onPay = {
+                Log.d("InfoSpaceUI", "Attempting to create space order with date: $bookedDateStr, time: $startTimeStr, duration: $durationHoursInt hrs")
+                orderViewModel.createOrderForSpace(
+                    token = token,
+                    space = selectedSpace!!,
+                    bookedDate = bookedDateStr,
+                    startTime = startTimeStr,
+                    durationHours = durationHoursInt
+                )
                 showPaymentDialog = false
                 showPaymentSuccess = true
             }

@@ -25,6 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flocka.R
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
@@ -54,6 +57,8 @@ import com.example.flocka.ui.home.quiz.QuizQuestionDisplayDialog
 import com.example.flocka.ui.home.quiz.QuizRemindLaterDialog
 import com.example.flocka.ui.home.quiz.QuizStateManager
 import com.example.flocka.ui.home.quiz.QuizTimePromptDialog
+import com.example.flocka.viewmodel.auth.AuthViewModel
+import com.example.flocka.viewmodel.quiz.QuizViewModel
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
@@ -61,15 +66,38 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun HomePage(
+    token: String,
+    authViewModel: AuthViewModel = viewModel(),
+    quizViewModel: QuizViewModel = viewModel(),
     onSpaceClick: () -> Unit,
     onEventClick: () -> Unit,
     onSeeCommunities: () -> Unit,
-    onCommunityClick: () -> Unit)
+)
 {
+    val userProfile by authViewModel.userProfile.collectAsState()
+    val currentToken by authViewModel.token.collectAsState()
+    val quizResult by quizViewModel.quizResult.collectAsState()
+    val refreshProfileTrigger by quizViewModel.refreshProfileTrigger.collectAsState()
 
+    LaunchedEffect(key1 = currentToken) {
+        val token = currentToken
+        if (!token.isNullOrBlank() && userProfile == null) {
+            authViewModel.fetchUserProfile(token)
+        }
+    }
+
+    LaunchedEffect(refreshProfileTrigger) {
+        if (token.isNotBlank()) {
+            authViewModel.fetchUserProfile(token)
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope()
-    val quizManager = remember { QuizStateManager(coroutineScope) }
+    val quizManager = remember(coroutineScope, quizViewModel, token) {
+        QuizStateManager(coroutineScope, quizViewModel) { token }
+    }
+
+    val isTokenReady = token.isNotBlank()
 
     Column(
         modifier = Modifier
@@ -87,9 +115,13 @@ fun HomePage(
 
             AdsSection()
 
-            StreakSection(quizManager = quizManager)
+            StreakSection(
+                quizManager = quizManager,
+                currentStreak = userProfile?.currentStreak ?: 0,
+                quizEnabled = isTokenReady
+            )
 
-            CommunitySection(onSeeCommunities = onSeeCommunities, onCommunityClick = onCommunityClick)
+            CommunitySection(onSeeCommunities = onSeeCommunities, onCommunityClick = onSeeCommunities)
 
             Column(
                 modifier = Modifier
@@ -118,9 +150,6 @@ fun HomePage(
             if (quizManager.currentDialog != QuizDialogType.NONE) {
                 Dialog(
                     onDismissRequest = {
-                        // Decide if dialogs can be dismissed by clicking outside or back press
-                        // For most of these, you probably want explicit button actions.
-                        // quizManager.dismissDialog() // Uncomment if general dismissal is allowed
                     },
                     properties = DialogProperties(
                         dismissOnClickOutside = false, // Prevents dismissal on outside click
@@ -154,24 +183,19 @@ fun HomePage(
                         QuizDialogType.LETS_START -> {
                             QuizLetsStartTimedDialog(
                                 onDismiss = { /* Managed by StateManager's timed transition */ },
-                                onTimeout = { quizManager.startQuiz() } // This is now handled internally by StateManager
+                                onTimeout = { quizManager.startQuizAttempt() }
                             )
                         }
 
                         QuizDialogType.QUESTION -> {
-                            val currentQ = quizManager.getCurrentQuestion()
-                            if (currentQ != null) {
-                                QuizQuestionDisplayDialog(
-                                    question = currentQ,
-                                    selectedAnswer = quizManager.selectedAnswerByUser,
-                                    isAnswerRevealed = quizManager.isAnswerRevealed,
-                                    onAnswerSelected = { answer -> quizManager.selectAnswer(answer) },
-                                    onDismiss = { /* Consider if dismissible here */ }
-                                )
-                            } else {
-                                // Handle case where question is somehow null, though unlikely
-                                quizManager.dismissDialog()
-                            }
+                            QuizQuestionDisplayDialog(
+                                question = quizManager.getCurrentQuestionFromViewModel(),
+                                selectedAnswer = quizManager.selectedAnswerByUser,
+                                isAnswerRevealed = quizManager.isAnswerRevealed,
+                                correctAnswer = quizResult?.correctAnswerText,
+                                onAnswerSelected = { answer -> quizManager.selectAnswer(answer) },
+                                onDismiss = { quizManager.dismissDialog() }
+                            )
                         }
                         // QuizDialogType.SHOWING_ANSWER is an internal state for QuizStateManager,
                         // The UI for it is handled within QuizQuestionDisplayDialog's color logic.
@@ -179,7 +203,8 @@ fun HomePage(
                         QuizDialogType.CONGRATULATIONS -> {
                             QuizCongratulationsDialog(
                                 onDismiss = { quizManager.dismissDialog() },
-                                onClose = { quizManager.dismissDialog() }
+                                onClose = { quizManager.dismissDialog() },
+                                streakCount = userProfile?.currentStreak ?: 0
                             )
                         }
 
@@ -187,6 +212,7 @@ fun HomePage(
                         }
 
                         else -> {
+                            quizManager.dismissDialog()
                         }
                     }
                 }
@@ -245,9 +271,13 @@ fun AdsSection() {
 }
 
 @Composable
-fun StreakSection(quizManager: QuizStateManager){
-
+fun StreakSection(
+    quizManager: QuizStateManager,
+    currentStreak: Int,
+    quizEnabled: Boolean
+) {
     val rotation = remember { Animatable(0f) }
+    val streakHistory = remember { List(7) { false } } // Placeholder for streak history
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -279,7 +309,7 @@ fun StreakSection(quizManager: QuizStateManager){
             .clip(RoundedCornerShape(10.dp))
             .background(color = Color.White),
         contentAlignment = Alignment.TopCenter
-    ){
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -289,7 +319,7 @@ fun StreakSection(quizManager: QuizStateManager){
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(225.dp)
-            ){
+            ) {
                 Text(
                     "Streak",
                     fontFamily = sansationFontFamily,
@@ -309,59 +339,44 @@ fun StreakSection(quizManager: QuizStateManager){
 
                 Spacer(modifier = Modifier.height(5.dp))
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Streak history visualization
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 23.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Background bar with circles inside
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(100.dp))
-                            .background(color = Color(0xFFEDF1F6))
-                            .padding(horizontal = 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            (1..7).forEach { day ->
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .clip(RoundedCornerShape(50))
-                                            .background(Color.Gray)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 23.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        (1..7).forEach { day ->
-                            Text(
-                                text = day.toString(),
-                                fontSize = 10.sp,
-                                fontFamily = sansationFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Gray
-                            )
-                        }
+                    streakHistory.forEachIndexed { index, completed ->
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (completed) OrangePrimary
+                                    else Color(0xFFE0E0E0)
+                                )
+                        )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 23.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    (1..7).forEach { day ->
+                        Text(
+                            text = day.toString(),
+                            fontSize = 10.sp,
+                            fontFamily = sansationFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
 
             Box(
@@ -369,7 +384,7 @@ fun StreakSection(quizManager: QuizStateManager){
                     .padding(bottom = 4.dp)
                     .fillMaxSize(),
                 contentAlignment = Alignment.BottomEnd
-            ){
+            ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_streak),
                     contentDescription = "Wiggle Icon",
@@ -377,12 +392,16 @@ fun StreakSection(quizManager: QuizStateManager){
                         .graphicsLayer {
                             rotationZ = rotation.value
                         }
-                        .clickable { quizManager.showPrompt() }
+                        .clickable {
+                            if (quizEnabled) {
+                                quizManager.showPrompt()
+                            }
+                        }
                         .size(50.dp)
                 )
 
                 Text(
-                    "X",
+                    currentStreak.toString(),
                     color = Color.White,
                     fontFamily = sansationFontFamily,
                     fontSize = 16.sp,
@@ -404,17 +423,17 @@ fun CommunitySection(onSeeCommunities: () -> Unit, onCommunityClick: () -> Unit)
         Triple(
             R.drawable.img_community_1,
             "WE LOVE THE EARTH, IT IS OUR PLANET",
-            "A chill space for geology enthusiasts who care about the planet. Let’s explore, learn, and protect the Earth together!" to "1,200 Members"
+            "A chill space for geology enthusiasts who care about the planet. Let's explore, learn, and protect the Earth together!" to "1,200 Members"
         ),
         Triple(
             R.drawable.img_community_2,
             "Pixel People",
-            "A vibrant space for UI/UX and digital design lovers to share ideas, get inspired, and grow together. From pixels to prototypes — let’s create cool stuff!" to "6,312 Members"
+            "A vibrant space for UI/UX and digital design lovers to share ideas, get inspired, and grow together. From pixels to prototypes — let's create cool stuff!" to "6,312 Members"
         ),
         Triple(
             R.drawable.img_community_3,
             "Digi Marketing MAKES MORE MONEY",
-            "A space for digital marketing minds to connect, share strategies, and stay ahead of the trends. From SEO to social — let’s grow together!" to "4,416 Members"
+            "A space for digital marketing minds to connect, share strategies, and stay ahead of the trends. From SEO to social — let's grow together!" to "4,416 Members"
         )
     )
 
@@ -487,9 +506,9 @@ fun CommunitySection(onSeeCommunities: () -> Unit, onCommunityClick: () -> Unit)
 @Composable
 fun HomePagePreview(){
     HomePage(
-        onEventClick = {},
         onSpaceClick = {},
+        onEventClick = {},
         onSeeCommunities = {},
-        onCommunityClick = {}
+        token = "",
     )
 }

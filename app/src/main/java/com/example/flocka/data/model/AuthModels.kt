@@ -18,7 +18,6 @@ data class User(
     @SerializedName("profile_image_url")
     val profile_image_url: String?,
 
-
     @SerializedName("profession")
     val profession: String?,
 
@@ -29,7 +28,13 @@ data class User(
     val age: Int?,
 
     @SerializedName("bio")
-    val bio: String?
+    val bio: String?,
+
+    @SerializedName("current_streak")
+    val currentStreak: Int?,
+
+    @SerializedName("last_quiz_completed_date")
+    val lastQuizCompletedDate: String?
 )
 
 data class LoginRequest(

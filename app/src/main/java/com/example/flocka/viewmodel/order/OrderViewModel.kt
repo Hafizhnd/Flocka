@@ -46,14 +46,13 @@ class OrderViewModel : ViewModel() {
     fun createOrderForSpaceSimple(
         token: String,
         space: SpaceItem
-        // Defaulting to a 1-hour booking starting now
     ) {
         viewModelScope.launch {
             _orderCreationResult.value = null; _errorMessage.value = null
             try {
-                val calendar = Calendar.getInstance() // Current time
+                val calendar = Calendar.getInstance()
                 val formattedBookedStart = backendDateTimeFormatter.format(calendar.time)
-                calendar.add(Calendar.HOUR_OF_DAY, 1) // Default 1 hour duration
+                calendar.add(Calendar.HOUR_OF_DAY, 1)
                 val formattedBookedEnd = backendDateTimeFormatter.format(calendar.time)
 
                 val quantity = 1 // 1 hour
@@ -71,6 +70,7 @@ class OrderViewModel : ViewModel() {
                 val response = RetrofitClient.orderApi.createOrder("Bearer $token", request)
                 if (response.isSuccessful && response.body()?.success == true && response.body()?.data != null) {
                     _orderCreationResult.value = Result.success(response.body()!!.data!!)
+                    fetchMyOrders(token) // Refresh orders
                 } else {
                     val errorMsg = response.body()?.message ?: "Failed to book space (Code: ${response.code()})"
                     _errorMessage.value = errorMsg
@@ -99,7 +99,7 @@ class OrderViewModel : ViewModel() {
                 val parsedStartDateTime: Date? = try { uiDateTimeFormatter.parse(startDateTimeStr) } catch (e: ParseException) { null }
 
                 if (parsedStartDateTime == null) {
-                    val err = "Invalid date or time for space booking."
+                    val err = "Invalid date or time format for space booking. Received: date='$bookedDate', time='$startTime'. Expected: 'dd/MM/yyyy' and 'HH:mm'."
                     _errorMessage.value = err
                     _orderCreationResult.value = Result.failure(Exception(err)); return@launch
                 }
@@ -123,6 +123,7 @@ class OrderViewModel : ViewModel() {
                 val response = RetrofitClient.orderApi.createOrder("Bearer $token", request)
                 if (response.isSuccessful && response.body()?.success == true && response.body()?.data != null) {
                     _orderCreationResult.value = Result.success(response.body()!!.data!!)
+                    fetchMyOrders(token) // Refresh orders
                 } else {
                     val errorMsg = response.body()?.message ?: "Failed to book space (Code: ${response.code()})"
                     _errorMessage.value = errorMsg
@@ -137,29 +138,67 @@ class OrderViewModel : ViewModel() {
         }
     }
 
-    fun fetchMyOrders(token: String, active: Boolean) {
+    fun fetchMyOrders(token: String) {
         viewModelScope.launch {
-            _errorMessage.value = null
             try {
-                val statusQuery = if (active) "active" else "archived"
-                Log.d("OrderViewModel", "Fetching my orders with token: ${token.take(10)}..., status: $statusQuery")
-                val response = RetrofitClient.orderApi.getMyOrders("Bearer $token", statusQuery)
+                Log.d("OrderViewModel", "Fetching my orders...")
+                val response = RetrofitClient.orderApi.getMyOrders("Bearer $token", null)
                 if (response.isSuccessful && response.body()?.success == true) {
                     val orders = response.body()?.data ?: emptyList()
-                    if (active) {
-                        _activeOrders.value = orders
-                    } else {
-                        _archivedOrders.value = orders
-                    }
-                    Log.d("OrderViewModel", "Fetched ${orders.size} ${if(active) "active" else "archived"} orders.")
+                    val (active, expired) = classifyOrdersByDate(orders)
+                    _activeOrders.value = active
+                    _archivedOrders.value = expired
+                    Log.d("OrderViewModel", "Active orders: ${active.size}, Archived orders: ${expired.size}")
                 } else {
                     val errorMsg = response.body()?.message ?: "Failed to fetch orders (Code: ${response.code()})"
                     _errorMessage.value = errorMsg
-                    Log.e("OrderViewModel", "Fetch MyOrders Error: ${response.errorBody()?.string()}")
+                    Log.e("OrderViewModel", "Fetch My Orders Error: $errorMsg")
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Network error fetching orders: ${e.message}"
-                Log.e("OrderViewModel", "Fetch MyOrders Exception", e)
+                Log.e("OrderViewModel", "Fetch My Orders Exception", e)
+            }
+        }
+    }
+
+    fun createOrderForEvent(token: String, event: EventItem) {
+        viewModelScope.launch {
+            _orderCreationResult.value = null
+            _errorMessage.value = null
+
+            try {
+                if (event.startTime == null || event.endTime == null) {
+                    val err = "Event start or end time is missing."
+                    _errorMessage.value = err
+                    _orderCreationResult.value = Result.failure(Exception(err))
+                    Log.e("OrderViewModel", err)
+                    return@launch
+                }
+
+                val request = CreateOrderRequest(
+                    itemType = "event",
+                    itemId = event.eventId,
+                    quantity = 1,
+                    amountPaid = event.cost ?: 0.0,
+                    bookedStartDatetime = event.startTime,
+                    bookedEndDatetime = event.endTime
+                )
+                Log.d("OrderViewModel", "Creating event order: $request")
+                val response = RetrofitClient.orderApi.createOrder("Bearer $token", request)
+
+                if (response.isSuccessful && response.body()?.success == true && response.body()?.data != null) {
+                    _orderCreationResult.value = Result.success(response.body()!!.data!!)
+                    fetchMyOrders(token) // Refresh orders
+                } else {
+                    val errorMsg = response.body()?.message ?: "Failed to book event (Code: ${response.code()})"
+                    _errorMessage.value = errorMsg
+                    _orderCreationResult.value = Result.failure(Exception(errorMsg))
+                    Log.e("OrderViewModel", "Create Event Order Error: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Network error creating event order: ${e.message}"
+                _orderCreationResult.value = Result.failure(e)
+                Log.e("OrderViewModel", "Create Event Order Exception", e)
             }
         }
     }
@@ -184,5 +223,22 @@ class OrderViewModel : ViewModel() {
     fun getDisplayTimeForOrder(dateTimeString: String?): String {
         val parsedDate = parseGeneralBackendDateTime(dateTimeString)
         return parsedDate?.let { displayTimeFormat.format(it) } ?: "N/A"
+    }
+
+    fun classifyOrdersByDate(orders: List<OrderItem>): Pair<List<OrderItem>, List<OrderItem>> {
+        val now = System.currentTimeMillis()
+        val active = mutableListOf<OrderItem>()
+        val expired = mutableListOf<OrderItem>()
+        for (order in orders) {
+            val endDate = parseGeneralBackendDateTime(order.bookedEndDatetime ?: order.bookedStartDatetime)
+            if (endDate != null && endDate.time > now) {
+                active.add(order)
+            } else {
+                expired.add(order)
+            }
+        }
+        active.sortBy { parseGeneralBackendDateTime(it.bookedStartDatetime)?.time ?: Long.MAX_VALUE }
+        expired.sortByDescending { parseGeneralBackendDateTime(it.bookedStartDatetime)?.time ?: Long.MIN_VALUE }
+        return Pair(active, expired)
     }
 }

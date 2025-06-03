@@ -57,4 +57,8 @@ object RetrofitClient {
     val orderApi: OrderApi by lazy {
         retrofit.create(OrderApi::class.java)
     }
+
+    val quizApi: QuizApi by lazy {
+        retrofit.create(QuizApi::class.java)
+    }
 }
