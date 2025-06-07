@@ -220,7 +220,7 @@ fun CommunityPage(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = community.description ?: "No description available for this community.", // Use the dynamic description
+                            text = community.description ?: "No description available for this community.",
                             fontFamily = alexandriaFontFamily,
                             fontWeight = FontWeight.Light,
                             fontSize = 10.sp,

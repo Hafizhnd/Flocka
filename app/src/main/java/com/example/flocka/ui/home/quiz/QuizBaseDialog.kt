@@ -54,7 +54,6 @@ fun QuizBaseDialog(
                 contentScale = ContentScale.FillWidth
             )
 
-            // Dialog content on top of the image
             Column(
                 modifier = Modifier
                     .matchParentSize()

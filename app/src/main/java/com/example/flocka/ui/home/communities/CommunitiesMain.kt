@@ -62,10 +62,15 @@ fun CommunitiesMain(
     var isLoading by remember { mutableStateOf(true) }
     var selectedFilter by rememberSaveable { mutableStateOf("Trending") }
 
-    LaunchedEffect(token, selectedFilter) {
+    val fetchType = when (selectedFilter) {
+        "My Communities" -> "my"
+        else -> "all" // "Trending" and "Recommended" both map to the "all" fetch type.
+    }
+
+    LaunchedEffect(token, fetchType) {
         if (token.isNotBlank()) {
             isLoading = true
-            communityViewModel.fetchCommunities(token, if (selectedFilter == "My Communities") "my" else "all")
+            communityViewModel.fetchCommunities(token, fetchType)
         } else {
             isLoading = false
         }
@@ -205,14 +210,16 @@ fun CommunitiesMain(
             }
         }
 
-        // Content
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .padding(top = 180.dp)
         ) {
 
-            CommunityDropdown(selectedOption = selectedFilter, onOptionSelected = { selectedFilter = it })
+            CommunityRadioOptions(
+                selectedOption = selectedFilter,
+                onOptionSelected = { selectedFilter = it }
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -248,46 +255,40 @@ fun CommunitiesMain(
 
 
 @Composable
-fun CommunityDropdown(selectedOption: String, onOptionSelected: (String) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val options = listOf("Trending", "Recommended", "Most Recent", "My Communities")
+fun CommunityRadioOptions(
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    val options = listOf("Trending", "Recommended")
 
-    Column(modifier = Modifier.width(155.dp)) {
-        Row(
-            modifier = Modifier
-                .width(155.dp)
-                .padding(horizontal = 8.dp)
-                .height(40.dp)
-                .clickable { expanded = !expanded },
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = selectedOption,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = alexandriaFontFamily,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                Icons.Rounded.ArrowBackIosNew,
-                contentDescription = "Dropdown",
-                modifier = Modifier.size(14.dp).rotate(270f),
-                tint = Color.Black
-            )
-        }
-        Box(modifier = Modifier.width(155.dp).height(1.dp).background(Color.LightGray))
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(155.dp).background(Color.White)
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option, fontSize = 14.sp, fontFamily = sansationFontFamily) },
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        options.forEach { option ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onOptionSelected(option) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                RadioButton(
+                    selected = selectedOption == option,
+                    onClick = { onOptionSelected(option) },
+                    colors = RadioButtonDefaults.colors(
+                        selectedColor = BluePrimary,
+                        unselectedColor = Color.Gray
+                    )
+                )
+                Text(
+                    text = option,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = alexandriaFontFamily,
+                    color = if (selectedOption == option) BluePrimary else Color.Black
                 )
             }
         }
@@ -324,7 +325,7 @@ fun CommunityCard(
             modifier = Modifier.padding(vertical = 4.dp)
         ) {
             Text(
-                community.name, // Dynamic
+                community.name,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,

@@ -11,15 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,18 +32,15 @@ import com.example.flocka.data.model.TodoItem
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.BlueSecondary
 import com.example.flocka.ui.components.sansationFontFamily
-import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.viewmodel.todo.TodoViewModel
-import com.yourpackage.ui.screens.BaseScreen
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProgressMain(
     token: String,
-    authViewModel: AuthViewModel = viewModel(),
     todoViewModel: TodoViewModel = viewModel()
 ) {
     var showAddTaskDialog by remember { mutableStateOf(false) }
@@ -59,31 +48,26 @@ fun ProgressMain(
     var currentTaskToEdit by remember { mutableStateOf<TodoItem?>(null) }
 
     val groupedTodos by todoViewModel.groupedTodos.collectAsState()
-    val tokenState by authViewModel.token.collectAsState()
     val uiErrorMessage by todoViewModel.errorMessage.collectAsState()
     val operationResult by todoViewModel.operationResult.collectAsState()
 
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val collectedTokenState by authViewModel.token.collectAsState()
-    Log.d("ProgressMainDebug", "Param token: ${token.take(10)}, Collected token: ${collectedTokenState?.take(10)}")
-
-    LaunchedEffect(token) {
+    LaunchedEffect(key1 = token) {
         if (token.isNotBlank()) {
             isLoading = true
+            Log.d("ProgressMain", "Token available, fetching todos...")
             todoViewModel.fetchTodos(token)
         } else {
             isLoading = false
-            Log.w("ProgressMainDebug", "Token is blank in ProgressMain.")
+            Log.w("ProgressMain", "Token is blank in ProgressMain. Cannot fetch.")
         }
     }
 
     LaunchedEffect(groupedTodos, uiErrorMessage) {
-        if (groupedTodos.isNotEmpty() || uiErrorMessage != null || (tokenState != null && !isLoading && groupedTodos.isEmpty() && uiErrorMessage == null) ) {
-            isLoading = false
-        }
+        isLoading = false
     }
 
     LaunchedEffect(operationResult) {
@@ -102,10 +86,10 @@ fun ProgressMain(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { scaffoldPadding ->
-        BaseScreen {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFFEDF1F6))
                 .padding(scaffoldPadding)
                 .padding(horizontal = 30.dp, vertical = 10.dp)
                 .then(if (showAddTaskDialog || showEditTaskDialog) Modifier.blur(10.dp) else Modifier),
@@ -128,7 +112,13 @@ fun ProgressMain(
                     Image(
                         painter = painterResource(id = R.drawable.ic_add_task),
                         contentDescription = "Add Task",
-                        modifier = Modifier.size(26.dp).clickable { showAddTaskDialog = true }
+                        modifier = Modifier.size(26.dp).clickable {
+                            if (token.isNotBlank()) {
+                                showAddTaskDialog = true
+                            } else {
+                                coroutineScope.launch { snackbarHostState.showSnackbar("Please log in to add tasks.") }
+                            }
+                        }
                     )
                 }
 
@@ -138,8 +128,8 @@ fun ProgressMain(
                         properties = DialogProperties(usePlatformDefaultWidth = false)
                     ) {
                         AddTaskDialog(
-                            onDismiss = { showAddTaskDialog = false },
-                            token = token
+                            token = token,
+                            onDismiss = { showAddTaskDialog = false }
                         )
                     }
                 }
@@ -151,9 +141,8 @@ fun ProgressMain(
                     ) {
                         EditTaskDialog(
                             taskToEdit = currentTaskToEdit!!,
-                            onDismiss = { showEditTaskDialog = false },
-                            todoViewModel = todoViewModel,
-                            token = token
+                            token = token,
+                            onDismiss = { showEditTaskDialog = false }
                         )
                     }
                 }
@@ -162,10 +151,17 @@ fun ProgressMain(
 
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp))
-                } else if (uiErrorMessage != null && groupedTodos.isEmpty()) {
-                    Text("Error: $uiErrorMessage", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally))
+                } else if (uiErrorMessage != null) {
+                    Text(
+                        text = "Error: $uiErrorMessage",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)
+                    )
                 } else if (groupedTodos.isEmpty()) {
-                    Text("No tasks yet. Add one!", modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally))
+                    Text(
+                        text = "No tasks yet. Add one!",
+                        modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
@@ -178,7 +174,7 @@ fun ProgressMain(
                                     fontFamily = sansationFontFamily,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
-                                    color = if(groupTitle == "Past Due") MaterialTheme.colorScheme.error else Color(0xFF808183),
+                                    color = if (groupTitle == "Past Due") MaterialTheme.colorScheme.error else Color(0xFF808183),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(Color(0xFFEDF1F6))
@@ -189,20 +185,23 @@ fun ProgressMain(
                                 TaskCard(
                                     task = todoItem,
                                     onCheckedChange = { isChecked ->
-                                        if (isChecked && token.isNotBlank()) {
-                                            todoViewModel.deleteTodoOnCheck(token, todoItem.todoId)
+                                        if (isChecked) {
+                                            if (token.isNotBlank()) {
+                                                todoViewModel.deleteTodoOnCheck(token, todoItem.todoId)
+                                            }
                                         }
                                     },
                                     onEditClick = {
-                                        currentTaskToEdit = todoItem
-                                        showEditTaskDialog = true
+                                        if (token.isNotBlank()) {
+                                            currentTaskToEdit = todoItem
+                                            showEditTaskDialog = true
+                                        }
                                     }
                                 )
                             }
                         }
                     }
                 }
-            }
             }
         }
     }
@@ -214,46 +213,34 @@ fun TaskCard(
     onCheckedChange: (Boolean) -> Unit,
     onEditClick: () -> Unit
 ) {
-    val outputTimeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val inputTimeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
+    val todoViewModel: TodoViewModel = viewModel()
 
-    fun formatDisplayTime(timeString: String?): String {
-        if (timeString.isNullOrBlank()) return ""
-        return try { inputTimeFormat.parse(timeString)?.let { outputTimeFormat.format(it) } ?: "" }
-        catch (e: Exception) { timeString.take(5) }
-    }
+    val displayDate = todoViewModel.formatGeneralDisplayDate(task.date, todoViewModel.taskCardDisplayDateFormat)
+    val displayStartTime = todoViewModel.formatDisplayTimeFromTimeString(task.startTime)
+    val displayEndTime = todoViewModel.formatDisplayTimeFromTimeString(task.endTime)
 
-    val displayStartTime = formatDisplayTime(task.startTime)
-    val displayEndTime = formatDisplayTime(task.endTime)
     var timeText = displayStartTime
     if (displayEndTime.isNotBlank()) {
         timeText += if (timeText.isNotBlank()) " - $displayEndTime" else displayEndTime
     }
 
-    val todoViewModel: TodoViewModel = viewModel()
-    val displayDate = todoViewModel.getDisplayDateFromDateTimeString(task.date)
-
     val deadline = if (displayDate.isNotBlank()) "$displayDate, $timeText".trimEnd(',', ' ') else timeText.ifBlank { "No specific time" }
 
-
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 5.dp)
-            .height(45.dp)
-            .clip(shape = RoundedCornerShape(5.dp))
-            .background(BlueSecondary)
-            .clickable(onClick = onEditClick)
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onEditClick),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 24.dp)
-                .background(Color.White),
-            contentAlignment = Alignment.CenterStart
-        ) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(modifier = Modifier.fillMaxHeight().width(6.dp).background(BlueSecondary))
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -268,40 +255,42 @@ fun TaskCard(
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        if (deadline.isNotBlank() && deadline != "No specific time") {
+                        if (deadline.isNotBlank() && deadline.lowercase() != "no specific time") {
                             Text(
                                 text = deadline,
                                 fontFamily = sansationFontFamily,
                                 fontSize = 10.sp,
-                                color = Color(0xFF808183),
+                                color = Color(0xFF808183)
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(1.dp))
-                    Text(
-                        text = task.taskDescription ?: "",
-                        fontFamily = sansationFontFamily,
-                        fontSize = 10.sp,
-                        color = Color(0xFF808183),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    if (!task.taskDescription.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = task.taskDescription,
+                            fontFamily = sansationFontFamily,
+                            fontSize = 10.sp,
+                            color = Color(0xFF808183),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 Icon(
                     imageVector = Icons.Rounded.Edit,
                     contentDescription = "Edit Task",
-                    modifier = Modifier.size(20.dp).clickable { onEditClick() }.padding(horizontal = 4.dp),
-                    tint = BluePrimary.copy(alpha = 0.7f)
+                    modifier = Modifier.size(20.dp).clickable { onEditClick() }.padding(start = 4.dp, end = 8.dp),
+                    tint = BluePrimary.copy(alpha = 0.6f)
                 )
                 Checkbox(
                     checked = task.isDone,
                     onCheckedChange = onCheckedChange,
                     colors = CheckboxDefaults.colors(
                         checkedColor = BluePrimary,
-                        uncheckedColor = BluePrimary,
+                        uncheckedColor = BluePrimary.copy(alpha = 0.6f),
                         checkmarkColor = Color.White
                     ),
-                    modifier = Modifier.size(15.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -311,7 +300,5 @@ fun TaskCard(
 @Preview(showBackground = true)
 @Composable
 fun ProgressMainPreview() {
-    ProgressMain(
-        token = "token"
-    )
+    ProgressMain(token = "preview_token")
 }

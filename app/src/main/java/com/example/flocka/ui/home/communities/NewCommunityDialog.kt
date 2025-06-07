@@ -191,9 +191,8 @@ fun NewCommunityTypeField(
             onValueChange = onValueChange,
             singleLine = !multiline,
             textStyle = TextStyle(
-                fontSize = 15.sp,
+                fontSize = 12.sp,
                 fontFamily = sansationFontFamily,
-                fontWeight = FontWeight.SemiBold,
                 color = Color.Black
             ),
             cursorBrush = SolidColor(Color.Black),

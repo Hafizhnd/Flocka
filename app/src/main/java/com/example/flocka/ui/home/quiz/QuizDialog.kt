@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -70,10 +71,10 @@ fun QuizTimePromptDialog(
 }
 
 @Composable
-fun QuizRemindLaterDialog( // Renamed for clarity
+fun QuizRemindLaterDialog(
     onDismiss: () -> Unit,
     onRemind: () -> Unit,
-    onNoThanks: () -> Unit // Changed from onCancel to be more specific
+    onNoThanks: () -> Unit
 ) {
     QuizBaseDialog(onDismiss = onDismiss) {
         Text(
@@ -82,9 +83,9 @@ fun QuizRemindLaterDialog( // Renamed for clarity
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+        Column(
+            modifier = Modifier.fillMaxHeight(),
+            verticalArrangement = Arrangement.Bottom
         ) {
             Button(
                 onClick = onRemind,
@@ -110,7 +111,7 @@ fun QuizLoseStreakDialog(
     QuizBaseDialog(onDismiss = onDismiss) {
         Text(
             "NOOO!!!",
-            fontSize = 22.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Red,
             textAlign = TextAlign.Center
@@ -119,7 +120,7 @@ fun QuizLoseStreakDialog(
         Image(
             painter = painterResource(id = R.drawable.ic_sad),
             contentDescription = "Sad face",
-            modifier = Modifier.size(80.dp)
+            modifier = Modifier.size(75.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -143,9 +144,9 @@ fun QuizLoseStreakDialog(
 }
 
 @Composable
-fun QuizLetsStartTimedDialog( // Renamed for clarity
+fun QuizLetsStartTimedDialog(
     onDismiss: () -> Unit,
-    onTimeout: () -> Unit // Callback for when the 3 seconds are up
+    onTimeout: () -> Unit
 ) {
     QuizBaseDialog(onDismiss = onDismiss) {
         Text(
@@ -179,12 +180,12 @@ fun QuizQuestionDisplayDialog(
     QuizBaseDialog(onDismiss = onDismiss) {
         Text(
             question.questionText,
-            fontSize = 18.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        
+
         val options = listOfNotNull(
             question.option1,
             question.option2,
@@ -197,51 +198,76 @@ fun QuizQuestionDisplayDialog(
             .padding(horizontal = 2.dp, vertical = 2.dp)
             .height(36.dp)
 
-        if (options.size == 4) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    (0..1).forEach { index ->
-                        val option = options[index]
-                        val buttonColor = if (isAnswerRevealed) {
-                            when {
-                                option == correctAnswer -> Color(0xFF00C853) // Green for correct
-                                option == selectedAnswer -> Color.Red // Red for wrong selected
-                                else -> BlueButtonColor
+        when (options.size) {
+            4 -> {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        (0..1).forEach { index ->
+                            val option = options[index]
+                            val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
+                            Button(
+                                onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                                modifier = buttonModifier,
+                                colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                            ) {
+                                Text(option, textAlign = TextAlign.Center, fontSize = 13.sp)
                             }
-                        } else {
-                            BlueButtonColor
                         }
-                        Button(
-                            onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
-                            modifier = buttonModifier,
-                            colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
-                        ) {
-                            Text(option, textAlign = TextAlign.Center, fontSize = 13.sp)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        (2..3).forEach { index ->
+                            val option = options[index]
+                            val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
+                            Button(
+                                onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                                modifier = buttonModifier,
+                                colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                            ) {
+                                Text(option, textAlign = TextAlign.Center, fontSize = 13.sp)
+                            }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    (2..3).forEach { index ->
-                        val option = options[index]
-                        val buttonColor = if (isAnswerRevealed) {
-                            when {
-                                option == correctAnswer -> Color(0xFF00C853)
-                                option == selectedAnswer -> Color.Red
-                                else -> BlueButtonColor
+            }
+
+            3 -> {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        (0..1).forEach { index ->
+                            val option = options[index]
+                            val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
+                            Button(
+                                onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                                modifier = buttonModifier,
+                                colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                            ) {
+                                Text(option, textAlign = TextAlign.Center, fontSize = 13.sp)
                             }
-                        } else {
-                            BlueButtonColor
                         }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        val option = options[2]
+                        val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
                         Button(
                             onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
-                            modifier = buttonModifier,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 2.dp, vertical = 2.dp)
+                                .height(36.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                         ) {
                             Text(option, textAlign = TextAlign.Center, fontSize = 13.sp)
@@ -249,27 +275,21 @@ fun QuizQuestionDisplayDialog(
                     }
                 }
             }
-        } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                options.forEach { option ->
-                    val buttonColor = if (isAnswerRevealed) {
-                        when {
-                            option == correctAnswer -> Color(0xFF00C853)
-                            option == selectedAnswer -> Color.Red
-                            else -> BlueButtonColor
+
+            else -> {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    options.forEach { option ->
+                        val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
+                        Button(
+                            onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .height(36.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                        ) {
+                            Text(option, fontSize = 13.sp)
                         }
-                    } else {
-                        BlueButtonColor
-                    }
-                    Button(
-                        onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
-                            .height(36.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
-                    ) {
-                        Text(option, fontSize = 13.sp)
                     }
                 }
             }
@@ -317,5 +337,23 @@ fun QuizCongratulationsDialog(
         ) {
             Text("Awesome!")
         }
+    }
+}
+
+@Composable
+private fun getButtonColor(
+    option: String,
+    selectedAnswer: String?,
+    correctAnswer: String?,
+    isAnswerRevealed: Boolean
+): Color {
+    return if (isAnswerRevealed) {
+        when {
+            option == correctAnswer -> Color(0xFF00C853)
+            option == selectedAnswer -> Color.Red
+            else -> BlueButtonColor
+        }
+    } else {
+        BlueButtonColor
     }
 }

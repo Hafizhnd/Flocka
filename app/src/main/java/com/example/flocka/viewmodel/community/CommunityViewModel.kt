@@ -83,7 +83,7 @@ class CommunityViewModel : ViewModel() {
 
     fun createCommunity(token: String, name: String, description: String?, image: String? = null) {
         viewModelScope.launch {
-            _communityActionResult.value = null // Reset before action
+            _communityActionResult.value = null
             _errorMessage.value = null
             try {
                 val request = CreateCommunityRequest(name, description, image)
