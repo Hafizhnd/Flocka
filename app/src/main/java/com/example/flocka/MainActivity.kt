@@ -7,13 +7,15 @@ import android.view.WindowInsetsController
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import com.example.flocka.di.AppModule
 import com.example.flocka.navigation.RootNavGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val communityRepository = AppModule.provideCommunityRepository(applicationContext)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -21,7 +23,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val navController = androidx.navigation.compose.rememberNavController()
-            RootNavGraph(navController = navController)
+            RootNavGraph(
+                navController = navController,
+                communityRepository = communityRepository
+            )
         }
     }
 

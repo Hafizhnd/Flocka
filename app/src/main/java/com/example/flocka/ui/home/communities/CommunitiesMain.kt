@@ -40,39 +40,49 @@ import com.example.flocka.ui.components.alexandriaFontFamily
 import com.example.flocka.ui.components.sansationFontFamily
 import com.example.flocka.ui.home.communities.CommunityCard
 import com.example.flocka.viewmodel.community.CommunityViewModel
+import com.example.flocka.data.repository.CommunityRepository
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun CommunitiesMain(
     token: String,
-    communityViewModel: CommunityViewModel = viewModel(),
+    communityRepository: CommunityRepository,
     onBackClick: () -> Unit,
     onCommunityClick: (communityId: String) -> Unit,
     onCommunityCreationComplete: (newCommunityId: String) -> Unit
 ) {
+    val viewModel: CommunityViewModel = viewModel(
+        factory = CommunityViewModel.Factory(communityRepository)
+    )
 
     var showNewCommunityDialog by remember { mutableStateOf(false) }
     var showCommunityCreatedDialog by remember { mutableStateOf(false) }
     var newlyCreatedCommunityId by remember { mutableStateOf<String?>(null) }
 
-    val communities by communityViewModel.communities.collectAsState()
-    val myCommunities by communityViewModel.myCommunities.collectAsState()
-    val errorMessage by communityViewModel.errorMessage.collectAsState()
-    val communityActionResult by communityViewModel.communityActionResult.collectAsState()
+    val communities by viewModel.communities.collectAsState()
+    val myCommunities by viewModel.myCommunities.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val communityActionResult by viewModel.communityActionResult.collectAsState()
 
     var isLoading by remember { mutableStateOf(true) }
     var selectedFilter by rememberSaveable { mutableStateOf("Trending") }
 
-    val fetchType = when (selectedFilter) {
-        "My Communities" -> "my"
-        else -> "all" // "Trending" and "Recommended" both map to the "all" fetch type.
+    val context = LocalContext.current
+
+    // Initial data fetch
+    LaunchedEffect(token) {
+        if (token.isNotBlank()) {
+            viewModel.fetchCommunities(token)
+        }
     }
 
-    LaunchedEffect(token, fetchType) {
-        if (token.isNotBlank()) {
-            isLoading = true
-            communityViewModel.fetchCommunities(token, fetchType)
-        } else {
-            isLoading = false
+    // Handle online/offline sync
+    LaunchedEffect(Unit) {
+        if (isOnline(context)) {
+            viewModel.syncUnsyncedData(token)
         }
     }
 
@@ -91,7 +101,7 @@ fun CommunitiesMain(
                 }
             } else {
             }
-            communityViewModel.clearActionResult()
+            viewModel.clearActionResult()
         }
     }
 
@@ -171,7 +181,7 @@ fun CommunitiesMain(
                         ) {
                             NewCommunityDialog(
                                 token = token,
-                                communityViewModel = communityViewModel,
+                                communityViewModel = viewModel,
                                 onDismiss = { showNewCommunityDialog = false },
                                 onCreateCommunity = {}
                             )
@@ -352,13 +362,14 @@ fun CommunityCard(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun CommunitiesPreview() {
-    CommunitiesMain(
-        token = "preview_token",
-        onBackClick = {},
-        onCommunityClick = {},
-        onCommunityCreationComplete = {}
+// Helper function to check network connectivity
+private fun isOnline(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork
+    val capabilities = connectivityManager.getNetworkCapabilities(network)
+    return capabilities != null && (
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     )
 }

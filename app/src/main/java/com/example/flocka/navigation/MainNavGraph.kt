@@ -10,6 +10,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.profile.ui.EditProfileScreen
 import com.example.flocka.profile.ui.ProfileScreen
 import com.example.flocka.profile.ui.TicketScreen
@@ -34,12 +35,16 @@ import com.example.flocka.ui.profile.subscription.SubscriptionMain
 import com.example.flocka.ui.progress.ProgressMain
 
 @Composable
-fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues, token: String) {
+fun MainNavGraph(
+    navController: NavHostController, 
+    paddingValues: PaddingValues, 
+    token: String,
+    communityRepository: CommunityRepository
+) {
     NavHost(
         navController = navController,
         startDestination = "home",
         modifier = Modifier.padding(paddingValues)
-
     ) {
         composable("home") {
             HomePage(
@@ -68,17 +73,19 @@ fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues,
                 token = token)
         }
 
-        composable("communities") { CommunitiesMain(
-            token = token,
-            onBackClick = { navController.popBackStack() },
-            onCommunityClick = { communityId ->
-                navController.navigate("community_page/$communityId")
-            },
-            onCommunityCreationComplete = { newCommunityId ->
-                navController.navigate("community_page/$newCommunityId") {
-                }
-            }
-        )}
+        composable("communities") { 
+            CommunitiesMain(
+                token = token,
+                onBackClick = { navController.popBackStack() },
+                onCommunityClick = { communityId ->
+                    navController.navigate("community_page/$communityId")
+                },
+                onCommunityCreationComplete = { newCommunityId ->
+                    navController.navigate("community_page/$newCommunityId")
+                },
+                communityRepository = communityRepository
+            )
+        }
 
         composable(
             route = "community_page/{communityId}",
@@ -88,7 +95,8 @@ fun MainNavGraph(navController: NavHostController, paddingValues: PaddingValues,
             CommunityPage(
                 communityId = communityId,
                 token = token,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                communityRepository = communityRepository
             )
         }
 

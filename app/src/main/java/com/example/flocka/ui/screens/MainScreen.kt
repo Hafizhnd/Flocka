@@ -1,4 +1,4 @@
-package com.yourpackage.ui.screens
+package com.example.flocka.ui.screens
 
 import android.util.Log
 import androidx.compose.material3.Scaffold
@@ -12,13 +12,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.navigation.MainNavGraph
 import com.yourpackage.ui.components.BottomNavBar
 import com.yourpackage.ui.components.TopBar
+import com.yourpackage.ui.screens.BaseScreen
 
 @Composable
 fun MainScreen(
     token: String,
+    communityRepository: CommunityRepository,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val navController = rememberNavController()
@@ -63,12 +66,12 @@ fun MainScreen(
         }
     ) { paddingValues ->
         BaseScreen {
-            MainNavGraph(navController = navController, paddingValues = paddingValues, token = token)
+            MainNavGraph(
+                navController = navController,
+                paddingValues = paddingValues,
+                token = token,
+                communityRepository = communityRepository
+            )
         }
     }
-}
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    MainScreen(token = "preview_token")
 }

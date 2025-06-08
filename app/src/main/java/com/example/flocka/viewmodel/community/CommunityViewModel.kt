@@ -2,17 +2,19 @@ package com.example.flocka.viewmodel.community
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.data.model.CommunityItem
-import com.example.flocka.data.model.CreateCommunityRequest
-import com.example.flocka.data.model.UpdateCommunityRequest
+import com.example.flocka.data.repository.CommunityRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-class CommunityViewModel : ViewModel() {
+class CommunityViewModel(
+    private val repository: CommunityRepository
+) : ViewModel() {
 
     private val _communities = MutableStateFlow<List<CommunityItem>>(emptyList())
     val communities: StateFlow<List<CommunityItem>> = _communities.asStateFlow()
@@ -29,6 +31,18 @@ class CommunityViewModel : ViewModel() {
     private val _communityActionResult = MutableStateFlow<Result<CommunityItem>?>(null)
     val communityActionResult: StateFlow<Result<CommunityItem>?> = _communityActionResult.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            repository.getAllCommunities()
+                .catch { e ->
+                    _errorMessage.value = "Error loading communities: ${e.message}"
+                }
+                .collect { communities ->
+                    _communities.value = communities
+                }
+        }
+    }
+
     fun clearActionResult() {
         _communityActionResult.value = null
     }
@@ -37,25 +51,9 @@ class CommunityViewModel : ViewModel() {
         viewModelScope.launch {
             _errorMessage.value = null
             try {
-                val response = if (type.equals("my", ignoreCase = true)) {
-                    RetrofitClient.communityApi.getMyCommunities("Bearer $token")
-                } else {
-                    RetrofitClient.communityApi.getCommunities("Bearer $token")
-                }
-
-                if (response.isSuccessful && response.body()?.success == true) {
-                    if (type.equals("my", ignoreCase = true)) {
-                        _myCommunities.value = response.body()?.data ?: emptyList()
-                    } else {
-                        _communities.value = response.body()?.data ?: emptyList()
-                    }
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to fetch communities"
-                    _errorMessage.value = errorMsg
-                    Log.e("CommunityVM", "Fetch ($type) Error: ${response.code()} - $errorMsg. Body: ${response.errorBody()?.string()}")
-                }
+                repository.refreshCommunities(token)
             } catch (e: Exception) {
-                _errorMessage.value = "Network error fetching communities: ${e.message}"
+                _errorMessage.value = "Error fetching communities: ${e.message}"
                 Log.e("CommunityVM", "Fetch ($type) Exception", e)
             }
         }
@@ -66,16 +64,13 @@ class CommunityViewModel : ViewModel() {
             _selectedCommunity.value = null
             _errorMessage.value = null
             try {
-                val response = RetrofitClient.communityApi.getCommunityById("Bearer $token", communityId)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _selectedCommunity.value = response.body()?.data
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to fetch community details"
-                    _errorMessage.value = errorMsg
-                    Log.e("CommunityVM", "FetchById Error: ${response.code()} - $errorMsg. Body: ${response.errorBody()?.string()}")
+                val community = repository.getCommunityById(token, communityId)
+                _selectedCommunity.value = community
+                if (community == null) {
+                    _errorMessage.value = "Community not found"
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Network error fetching community: ${e.message}"
+                _errorMessage.value = "Error fetching community: ${e.message}"
                 Log.e("CommunityVM", "FetchById Exception", e)
             }
         }
@@ -86,28 +81,13 @@ class CommunityViewModel : ViewModel() {
             _communityActionResult.value = null
             _errorMessage.value = null
             try {
-                val request = CreateCommunityRequest(name, description, image)
-                val response = RetrofitClient.communityApi.createCommunity("Bearer $token", request)
-
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val newCommunity = response.body()?.data
-                    if (newCommunity != null) {
-                        _communityActionResult.value = Result.success(newCommunity)
-                        fetchCommunities(token)
-                        fetchCommunities(token, "my")
-                    } else {
-                        val errorMsg = "Community created but no data returned."
-                        _errorMessage.value = errorMsg
-                        _communityActionResult.value = Result.failure(Exception(errorMsg))
-                    }
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to create community"
-                    _errorMessage.value = errorMsg
-                    _communityActionResult.value = Result.failure(Exception(errorMsg))
-                    Log.e("CommunityVM", "CreateComm Error: ${response.code()} - $errorMsg. Body: ${response.errorBody()?.string()}")
+                val result = repository.createCommunity(token, name, description, image)
+                _communityActionResult.value = result
+                if (result.isFailure) {
+                    _errorMessage.value = result.exceptionOrNull()?.message
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Network error creating community: ${e.message}"
+                _errorMessage.value = "Error creating community: ${e.message}"
                 _communityActionResult.value = Result.failure(e)
                 Log.e("CommunityVM", "CreateComm Exception", e)
             }
@@ -119,28 +99,36 @@ class CommunityViewModel : ViewModel() {
             _communityActionResult.value = null
             _errorMessage.value = null
             try {
-                val request = UpdateCommunityRequest(name, description, image)
-                val response = RetrofitClient.communityApi.updateCommunity("Bearer $token", communityId, request)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val updatedCommunity = response.body()?.data
-                    if (updatedCommunity != null) {
-                        _communityActionResult.value = Result.success(updatedCommunity)
-                    } else {
-
-                        _communityActionResult.value = Result.success(CommunityItem(communityId, name ?: "", description, "", "", image, null, null, 0 )) // Create a dummy success if needed
-                    }
-                    fetchCommunityById(token, communityId)
-                    fetchCommunities(token)
-                    fetchCommunities(token, "my")
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to update community"
-                    _errorMessage.value = errorMsg
-                    _communityActionResult.value = Result.failure(Exception(errorMsg))
+                val result = repository.updateCommunity(token, communityId, name, description, image)
+                _communityActionResult.value = result
+                if (result.isFailure) {
+                    _errorMessage.value = result.exceptionOrNull()?.message
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Network error updating community: ${e.message}"
+                _errorMessage.value = "Error updating community: ${e.message}"
                 _communityActionResult.value = Result.failure(e)
+                Log.e("CommunityVM", "UpdateComm Exception", e)
             }
+        }
+    }
+
+    fun syncUnsyncedData(token: String) {
+        viewModelScope.launch {
+            try {
+                repository.syncUnsyncedCommunities(token)
+            } catch (e: Exception) {
+                Log.e("CommunityVM", "Sync Exception", e)
+            }
+        }
+    }
+
+    class Factory(private val repository: CommunityRepository) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(CommunityViewModel::class.java)) {
+                return CommunityViewModel(repository) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

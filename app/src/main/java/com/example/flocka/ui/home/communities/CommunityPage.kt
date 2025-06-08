@@ -46,6 +46,7 @@ import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,27 +66,46 @@ import com.example.flocka.ui.components.sansationFontFamily
 import com.example.flocka.viewmodel.community.CommunityViewModel
 import com.yourpackage.ui.screens.BaseScreen
 import kotlin.math.round
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import com.example.flocka.data.repository.CommunityRepository
 
 @Composable
 fun CommunityPage(
     communityId: String,
     token: String,
-    communityViewModel: CommunityViewModel = viewModel(),
+    communityRepository: CommunityRepository,
     onBackClick: () -> Unit,
 ) {
+    val viewModel: CommunityViewModel = viewModel(
+        factory = CommunityViewModel.Factory(communityRepository)
+    )
+
     var showNewThreadDialog by remember { mutableStateOf(false) }
     var showEditCommunityDialog by remember { mutableStateOf(false) }
 
-    val selectedCommunity by communityViewModel.selectedCommunity.collectAsState()
-    val errorMessage by communityViewModel.errorMessage.collectAsState()
-    val communityActionResult by communityViewModel.communityActionResult.collectAsState() // For join/leave feedback
+    val selectedCommunity by viewModel.selectedCommunity.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val communityActionResult by viewModel.communityActionResult.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
+
+    // Check for network connectivity
+    val context = LocalContext.current
+    val isOnline = remember { mutableStateOf(isOnline(context)) }
 
     LaunchedEffect(key1 = communityId, key2 = token) {
         if (token.isNotBlank() && communityId.isNotBlank()) {
-            communityViewModel.fetchCommunityById(token, communityId)
+            viewModel.fetchCommunityById(token, communityId)
         } else {
             isLoading = false
+        }
+    }
+
+    // Sync when coming back online
+    LaunchedEffect(isOnline.value) {
+        if (isOnline.value) {
+            viewModel.syncUnsyncedData(token)
         }
     }
 
@@ -98,7 +118,7 @@ fun CommunityPage(
             if (result.isSuccess) {
             } else {
             }
-            communityViewModel.clearActionResult()
+            viewModel.clearActionResult()
         }
     }
 
@@ -341,7 +361,7 @@ fun CommunityPage(
             Dialog(onDismissRequest = { showEditCommunityDialog = false}, properties = DialogProperties(usePlatformDefaultWidth = false) ) {
                 EditCommunityDialog(
                     token = token,
-                    communityViewModel = communityViewModel,
+                    communityViewModel = viewModel,
                     currentCommunity = communityToEdit,
                     onDismiss = { showEditCommunityDialog = false }
                 )
@@ -350,12 +370,14 @@ fun CommunityPage(
     }
 }
 
-@Preview
-@Composable
-fun CommunityPagePreview() {
-    CommunityPage(
-        token = "preview_token",
-        onBackClick = {},
-        communityId = "preview_community_id",
+// Helper function to check network connectivity (if not already defined)
+private fun isOnline(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork
+    val capabilities = connectivityManager.getNetworkCapabilities(network)
+    return capabilities != null && (
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     )
 }
