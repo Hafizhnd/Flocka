@@ -8,6 +8,8 @@ import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
+import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.di.AppModule
 import com.example.flocka.navigation.RootNavGraph
 
@@ -16,18 +18,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val communityRepository = AppModule.provideCommunityRepository(applicationContext)
+        val quizRepository = AppModule.provideQuizRepository(applicationContext)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        hideSystemUI()
 
         setContent {
             val navController = androidx.navigation.compose.rememberNavController()
             RootNavGraph(
                 navController = navController,
-                communityRepository = communityRepository
+                communityRepository = communityRepository,
+                quizRepository  = quizRepository
             )
         }
+
+        hideSystemUI()
     }
 
     private fun hideSystemUI() {

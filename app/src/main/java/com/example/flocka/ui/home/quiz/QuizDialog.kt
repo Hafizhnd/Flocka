@@ -169,7 +169,7 @@ fun QuizQuestionDisplayDialog(
     selectedAnswer: String?,
     isAnswerRevealed: Boolean,
     correctAnswer: String?,
-    onAnswerSelected: (String) -> Unit,
+    onAnswerSelected: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     if (question == null) {
@@ -209,7 +209,7 @@ fun QuizQuestionDisplayDialog(
                             val option = options[index]
                             val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
                             Button(
-                                onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                                onClick = { if (!isAnswerRevealed) onAnswerSelected(index) },
                                 modifier = buttonModifier,
                                 colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                             ) {
@@ -226,7 +226,7 @@ fun QuizQuestionDisplayDialog(
                             val option = options[index]
                             val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
                             Button(
-                                onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                                onClick = { if (!isAnswerRevealed) onAnswerSelected(index) },
                                 modifier = buttonModifier,
                                 colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                             ) {
@@ -247,7 +247,7 @@ fun QuizQuestionDisplayDialog(
                             val option = options[index]
                             val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
                             Button(
-                                onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                                onClick = { if (!isAnswerRevealed) onAnswerSelected(index) },
                                 modifier = buttonModifier,
                                 colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                             ) {
@@ -263,7 +263,7 @@ fun QuizQuestionDisplayDialog(
                         val option = options[2]
                         val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
                         Button(
-                            onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                            onClick = { if (!isAnswerRevealed) onAnswerSelected(2) },
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 2.dp, vertical = 2.dp)
@@ -278,10 +278,10 @@ fun QuizQuestionDisplayDialog(
 
             else -> {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    options.forEach { option ->
+                    options.forEachIndexed { index, option ->
                         val buttonColor = getButtonColor(option, selectedAnswer, correctAnswer, isAnswerRevealed)
                         Button(
-                            onClick = { if (!isAnswerRevealed) onAnswerSelected(option) },
+                            onClick = { if (!isAnswerRevealed) onAnswerSelected(index) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp)

@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.profile.ui.EditProfileScreen
 import com.example.flocka.profile.ui.ProfileScreen
 import com.example.flocka.profile.ui.TicketScreen
@@ -36,10 +37,11 @@ import com.example.flocka.ui.progress.ProgressMain
 
 @Composable
 fun MainNavGraph(
-    navController: NavHostController, 
-    paddingValues: PaddingValues, 
+    navController: NavHostController,
+    paddingValues: PaddingValues,
     token: String,
-    communityRepository: CommunityRepository
+    communityRepository: CommunityRepository,
+    quizRepository: QuizRepository
 ) {
     NavHost(
         navController = navController,
@@ -52,6 +54,7 @@ fun MainNavGraph(
                 onEventClick = { navController.navigate("event") },
                 onSeeCommunities = { navController.navigate("communities") },
                 token = token,
+                quizRepository = quizRepository
             )
         }
 
@@ -73,7 +76,7 @@ fun MainNavGraph(
                 token = token)
         }
 
-        composable("communities") { 
+        composable("communities") {
             CommunitiesMain(
                 token = token,
                 onBackClick = { navController.popBackStack() },
