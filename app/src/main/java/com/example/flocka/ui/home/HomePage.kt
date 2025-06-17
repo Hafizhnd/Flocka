@@ -46,6 +46,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flocka.R
+import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.sansationFontFamily
@@ -67,13 +69,16 @@ import kotlinx.coroutines.delay
 @Composable
 fun HomePage(
     token: String,
-    authViewModel: AuthViewModel = viewModel(),
-    quizViewModel: QuizViewModel = viewModel(),
+    quizRepository: QuizRepository,
     onSpaceClick: () -> Unit,
     onEventClick: () -> Unit,
     onSeeCommunities: () -> Unit,
-)
-{
+) {
+    val authViewModel: AuthViewModel = viewModel()
+    val quizViewModel: QuizViewModel = viewModel(
+        factory = QuizViewModel.Factory(quizRepository)
+    )
+
     val userProfile by authViewModel.userProfile.collectAsState()
     val currentToken by authViewModel.token.collectAsState()
     val quizResult by quizViewModel.quizResult.collectAsState()
@@ -193,7 +198,7 @@ fun HomePage(
                                 selectedAnswer = quizManager.selectedAnswerByUser,
                                 isAnswerRevealed = quizManager.isAnswerRevealed,
                                 correctAnswer = quizResult?.correctAnswerText,
-                                onAnswerSelected = { answer -> quizManager.selectAnswer(answer) },
+                                onAnswerSelected = { index -> quizManager.selectAnswer(index.toInt()) }, // Changed: parameter name reflects it's now an index
                                 onDismiss = { quizManager.dismissDialog() }
                             )
                         }
@@ -500,15 +505,4 @@ fun CommunitySection(onSeeCommunities: () -> Unit, onCommunityClick: () -> Unit)
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomePagePreview(){
-    HomePage(
-        onSpaceClick = {},
-        onEventClick = {},
-        onSeeCommunities = {},
-        token = "",
-    )
 }

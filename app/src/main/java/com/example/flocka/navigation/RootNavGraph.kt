@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.data.repository.SpaceRepository
+import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.ui.onboarding.*
 import com.example.flocka.ui.screens.MainScreen
 
@@ -13,6 +14,7 @@ import com.example.flocka.ui.screens.MainScreen
 fun RootNavGraph(
     navController: NavHostController,
     communityRepository: CommunityRepository,
+    quizRepository: QuizRepository,
     spaceRepository: SpaceRepository
 ) {
     NavHost(
@@ -72,7 +74,7 @@ fun RootNavGraph(
         composable("add_profile_picture") {
             // Add your AddProfilePictureUI here when ready
             // AddProfilePictureUI(
-            //     onComplete = { token -> 
+            //     onComplete = { token ->
             //         navController.navigate("main/$token") {
             //             popUpTo("splash") { inclusive = true }
             //         }
@@ -88,6 +90,7 @@ fun RootNavGraph(
             MainScreen(
                 token = token,
                 communityRepository = communityRepository,
+                quizRepository = quizRepository,
                 spaceRepository = spaceRepository
             )
         }

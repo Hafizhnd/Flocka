@@ -6,20 +6,26 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.flocka.data.local.dao.CommunityDao
 import com.example.flocka.data.local.dao.SpaceDao
+import com.example.flocka.data.local.dao.QuizDao
 import com.example.flocka.data.local.entity.CommunityEntity
 import com.example.flocka.data.local.entity.SpaceEntity
+import com.example.flocka.data.local.entity.QuizEntity
+import com.example.flocka.data.local.entity.QuizResultEntity
 
 @Database(
     entities = [
         CommunityEntity::class,
+        QuizEntity::class,
+        QuizResultEntity::class,
         SpaceEntity::class
     ],
-    version = 3,
+    version = 1,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun communityDao(): CommunityDao
     abstract fun spaceDao(): SpaceDao
+    abstract fun quizDao(): QuizDao
 
     companion object {
         @Volatile

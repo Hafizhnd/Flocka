@@ -119,25 +119,34 @@ class QuizStateManager(
         }
     }
 
-    fun selectAnswer(option: String) {
+    fun selectAnswer(optionIndex: Int) {
         if (!isAnswerRevealed && currentQuestion != null) {
-            selectedAnswerByUser = option
+            val options = listOfNotNull(
+                currentQuestion!!.option1,
+                currentQuestion!!.option2,
+                currentQuestion!!.option3,
+                currentQuestion!!.option4
+            )
 
-            tokenProvider()?.let { token ->
-                quizViewModel.submitAnswer(token, currentQuestion!!.quizId, option)
-            }
+            if (optionIndex in 0 until options.size) {
+                selectedAnswerByUser = options[optionIndex]
 
-            transitionJob?.cancel()
-            transitionJob = coroutineScope.launch {
-                quizViewModel.quizResult.filterNotNull().first().let { resultData ->
-                    lastQuizResultIsCorrect = resultData.isCorrect
-                    isAnswerRevealed = true
-                    delay(3000)
-                    if (currentDialog == QuizDialogType.QUESTION && isAnswerRevealed) {
-                        showCongratulations()
-                    }
+                tokenProvider()?.let { token ->
+                    quizViewModel.submitAnswer(token, currentQuestion!!.quizId, optionIndex + 1)
                 }
-                quizViewModel.clearQuizResult()
+
+                transitionJob?.cancel()
+                transitionJob = coroutineScope.launch {
+                    quizViewModel.quizResult.filterNotNull().first().let { resultData ->
+                        lastQuizResultIsCorrect = resultData.isCorrect
+                        isAnswerRevealed = true
+                        delay(3000)
+                        if (currentDialog == QuizDialogType.QUESTION && isAnswerRevealed) {
+                            showCongratulations()
+                        }
+                    }
+                    quizViewModel.clearQuizResult()
+                }
             }
         }
     }

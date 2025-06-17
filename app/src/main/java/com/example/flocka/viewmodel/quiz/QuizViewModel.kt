@@ -1,22 +1,20 @@
-package com.example.flocka.viewmodel.quiz // Or your ViewModel package
+package com.example.flocka.viewmodel.quiz
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.flocka.data.model.QuizAnswerRequest
 import com.example.flocka.data.model.QuizQuestion
 import com.example.flocka.data.model.QuizResultResponseData
-import com.example.flocka.data.remote.RetrofitClient
-import com.example.flocka.viewmodel.auth.AuthViewModel
+import com.example.flocka.data.repository.QuizRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 class QuizViewModel(
+    private val quizRepository: QuizRepository
 ) : ViewModel() {
 
     private val _currentQuestion = MutableStateFlow<QuizQuestion?>(null)
@@ -37,46 +35,65 @@ class QuizViewModel(
     private val _refreshProfileTrigger = MutableStateFlow(false)
     val refreshProfileTrigger: StateFlow<Boolean> = _refreshProfileTrigger.asStateFlow()
 
+    class Factory(private val quizRepository: QuizRepository) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(QuizViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return QuizViewModel(quizRepository) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
+
     fun fetchQuizQuestion(token: String) {
         viewModelScope.launch {
             _isLoadingQuestion.value = true
             _errorMessage.value = null
             _currentQuestion.value = null // Clear previous question
+
             try {
-                val response = RetrofitClient.quizApi.getQuizQuestion("Bearer $token")
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _currentQuestion.value = response.body()?.data
-                } else {
-                    _errorMessage.value = response.body()?.message ?: "Failed to fetch question."
-                    Log.e("QuizViewModel", "FetchQuestion Error: ${response.errorBody()?.string()}")
-                }
+                quizRepository.getQuizQuestion(token).fold(
+                    onSuccess = { question ->
+                        _currentQuestion.value = question
+                        Log.d("QuizViewModel", "Question fetched successfully: ${question.quizId}")
+                    },
+                    onFailure = { exception ->
+                        _errorMessage.value = exception.message ?: "Failed to fetch question"
+                        Log.e("QuizViewModel", "Failed to fetch question", exception)
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = "Network error: ${e.message}"
-                Log.e("QuizViewModel", "FetchQuestion Exception", e)
+                _errorMessage.value = "Unexpected error: ${e.message}"
+                Log.e("QuizViewModel", "Unexpected error in fetchQuizQuestion", e)
             }
+
             _isLoadingQuestion.value = false
         }
     }
 
-    fun submitAnswer(token: String, quizId: String, answerGiven: String) {
+    fun submitAnswer(token: String, quizId: String, answerGiven: Int) {
         viewModelScope.launch {
             _isSubmittingAnswer.value = true
             _errorMessage.value = null
             _quizResult.value = null // Clear previous result
+
             try {
-                val request = QuizAnswerRequest(quizId, answerGiven)
-                val response = RetrofitClient.quizApi.submitQuizAnswer("Bearer $token", request)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _quizResult.value = response.body()?.data
-                    _refreshProfileTrigger.update { !_refreshProfileTrigger.value }
-                } else {
-                    _errorMessage.value = response.body()?.message ?: "Failed to submit answer."
-                    Log.e("QuizViewModel", "SubmitAnswer Error: ${response.errorBody()?.string()}")
-                }
+                quizRepository.submitQuizAnswer(token, quizId, answerGiven).fold(
+                    onSuccess = { result ->
+                        _quizResult.value = result
+                        _refreshProfileTrigger.update { !_refreshProfileTrigger.value }
+                        Log.d("QuizViewModel", "Answer submitted successfully")
+                    },
+                    onFailure = { exception ->
+                        _errorMessage.value = exception.message ?: "Failed to submit answer"
+                        Log.e("QuizViewModel", "Failed to submit answer", exception)
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = "Network error: ${e.message}"
-                Log.e("QuizViewModel", "SubmitAnswer Exception", e)
+                _errorMessage.value = "Unexpected error: ${e.message}"
+                Log.e("QuizViewModel", "Unexpected error in submitAnswer", e)
             }
+
             _isSubmittingAnswer.value = false
         }
     }
