@@ -7,6 +7,9 @@ import com.example.flocka.data.local.entity.TodoEntity
 import com.example.flocka.data.model.CreateTodoRequest
 import com.example.flocka.data.model.TodoItem
 import com.example.flocka.data.model.UpdateTodoRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.UUID
 
@@ -17,34 +20,37 @@ class TodoRepository(
 
     suspend fun getTodos(token: String): Result<List<TodoItem>> {
         return try {
+            syncPendingChanges(token)
+
             val response = todoApi.getTodos("Bearer $token")
             if (response.isSuccessful && response.body()?.success == true) {
-                val todos = response.body()?.data ?: emptyList()
+                val serverTodos = response.body()?.data ?: emptyList()
 
-                val todoEntities = todos.map { TodoEntity.fromTodoItem(it) }
+                todoDao.clearSyncedTodos()
+                val todoEntities = serverTodos.map { TodoEntity.fromTodoItem(it) }
                 todoDao.insertTodos(todoEntities)
 
-                Result.success(todos)
+                val allTodos = todoDao.getAllTodos().map { it.toTodoItem() }
+                Log.d("TodoRepository", "Fetched ${serverTodos.size} todos from server, ${allTodos.size} total with local changes")
+
+                Result.success(allTodos)
             } else {
                 val cachedTodos = todoDao.getAllTodos().map { it.toTodoItem() }
-                if (cachedTodos.isNotEmpty()) {
-                    Log.d("TodoRepository", "Using cached todos")
-                    Result.success(cachedTodos)
-                } else {
-                    Result.failure(Exception(response.body()?.message ?: "Failed to fetch todos"))
-                }
+                Log.d("TodoRepository", "Server error - using ${cachedTodos.size} cached todos")
+                Result.success(cachedTodos)
             }
         } catch (e: IOException) {
             val cachedTodos = todoDao.getAllTodos().map { it.toTodoItem() }
+            Log.d("TodoRepository", "Network error - using ${cachedTodos.size} cached todos")
+            Result.success(cachedTodos)
+        } catch (e: Exception) {
+            Log.e("TodoRepository", "Error fetching todos", e)
+            val cachedTodos = todoDao.getAllTodos().map { it.toTodoItem() }
             if (cachedTodos.isNotEmpty()) {
-                Log.d("TodoRepository", "Network error - using cached todos")
                 Result.success(cachedTodos)
             } else {
                 Result.failure(e)
             }
-        } catch (e: Exception) {
-            Log.e("TodoRepository", "Error fetching todos", e)
-            Result.failure(e)
         }
     }
 
@@ -56,41 +62,49 @@ class TodoRepository(
         endTime: String?,
         date: String?
     ): Result<String> {
-        return try {
-            val request = CreateTodoRequest(taskTitle, taskDescription, startTime, endTime, date)
-            val response = todoApi.createTodo("Bearer $token", request)
+        val localId = UUID.randomUUID().toString()
+        val currentTime = System.currentTimeMillis().toString()
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val createdTodo = response.body()?.data
-                if (createdTodo != null) {
-                    todoDao.insertTodo(TodoEntity.fromTodoItem(createdTodo))
+        val localTodo = TodoEntity(
+            todoId = localId,
+            userId = "",
+            taskTitle = taskTitle,
+            taskDescription = taskDescription,
+            startTime = startTime,
+            endTime = endTime,
+            date = date,
+            isDone = false,
+            createdAt = currentTime,
+            updatedAt = currentTime,
+            isLocalOnly = true,
+            isSynced = false,
+            syncOperation = "CREATE"
+        )
+
+        todoDao.insertTodo(localTodo)
+        Log.d("TodoRepository", "Todo created locally: $localId")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val request = CreateTodoRequest(taskTitle, taskDescription, startTime, endTime, date)
+                val response = todoApi.createTodo("Bearer $token", request)
+
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val serverTodo = response.body()?.data
+                    if (serverTodo != null) {
+                        todoDao.deleteTodoById(localId)
+                        todoDao.insertTodo(TodoEntity.fromTodoItem(serverTodo))
+                        Log.d("TodoRepository", "Todo synced successfully: ${serverTodo.todoId}")
+                    }
+                } else {
+                    Log.w("TodoRepository", "Failed to sync todo creation: ${response.body()?.message}")
                 }
-                Result.success(response.body()?.message ?: "Task added!")
-            } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to add task"))
+            } catch (e: Exception) {
+                Log.w("TodoRepository", "Background sync failed for todo creation", e)
             }
-        } catch (e: IOException) {
-            val localTodo = TodoEntity(
-                todoId = UUID.randomUUID().toString(),
-                userId = "",
-                taskTitle = taskTitle,
-                taskDescription = taskDescription,
-                startTime = startTime,
-                endTime = endTime,
-                date = date,
-                isDone = false,
-                createdAt = System.currentTimeMillis().toString(),
-                updatedAt = System.currentTimeMillis().toString(),
-                isLocalOnly = true
-            )
-            todoDao.insertTodo(localTodo)
-
-            Log.d("TodoRepository", "Offline - storing todo for later sync")
-            Result.failure(Exception("Offline - todo will be synced later"))
-        } catch (e: Exception) {
-            Log.e("TodoRepository", "Error creating todo", e)
-            Result.failure(e)
         }
+
+        return Result.success("Task added!")
     }
 
     suspend fun updateTodo(
@@ -102,87 +116,172 @@ class TodoRepository(
         endTime: String?,
         date: String?
     ): Result<String> {
-        return try {
-            val request = UpdateTodoRequest(taskTitle, taskDescription, startTime, endTime, date)
-            val response = todoApi.updateTodo("Bearer $token", todoId, request)
+        val existingTodo = todoDao.getTodoById(todoId)
+        if (existingTodo != null) {
+            val updatedTodo = existingTodo.copy(
+                taskTitle = taskTitle ?: existingTodo.taskTitle,
+                taskDescription = taskDescription ?: existingTodo.taskDescription,
+                startTime = startTime ?: existingTodo.startTime,
+                endTime = endTime ?: existingTodo.endTime,
+                date = date ?: existingTodo.date,
+                updatedAt = System.currentTimeMillis().toString(),
+                isSynced = false,
+                syncOperation = "UPDATE"
+            )
+            todoDao.updateTodo(updatedTodo)
+            Log.d("TodoRepository", "Todo updated locally: $todoId")
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val updatedTodo = response.body()?.data
-                if (updatedTodo != null) {
-                    todoDao.insertTodo(TodoEntity.fromTodoItem(updatedTodo))
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val request = UpdateTodoRequest(taskTitle, taskDescription, startTime, endTime, date)
+                    val response = todoApi.updateTodo("Bearer $token", todoId, request)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val serverTodo = response.body()?.data
+                        if (serverTodo != null) {
+                            todoDao.insertTodo(TodoEntity.fromTodoItem(serverTodo))
+                            Log.d("TodoRepository", "Todo update synced successfully: $todoId")
+                        }
+                    } else {
+                        Log.w("TodoRepository", "Failed to sync todo update: ${response.body()?.message}")
+                    }
+                } catch (e: Exception) {
+                    Log.w("TodoRepository", "Background sync failed for todo update", e)
                 }
-                Result.success(response.body()?.message ?: "Task updated!")
-            } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to update task"))
-            }
-        } catch (e: IOException) {
-            val existingTodo = todoDao.getTodoById(todoId)
-            if (existingTodo != null) {
-                val updatedTodo = existingTodo.copy(
-                    taskTitle = taskTitle ?: existingTodo.taskTitle,
-                    taskDescription = taskDescription ?: existingTodo.taskDescription,
-                    startTime = startTime ?: existingTodo.startTime,
-                    endTime = endTime ?: existingTodo.endTime,
-                    date = date ?: existingTodo.date,
-                    updatedAt = System.currentTimeMillis().toString(),
-                    isLocalOnly = true
-                )
-                todoDao.updateTodo(updatedTodo)
             }
 
-            Log.d("TodoRepository", "Offline - storing update for later sync")
-            Result.failure(Exception("Offline - update will be synced later"))
-        } catch (e: Exception) {
-            Log.e("TodoRepository", "Error updating todo", e)
-            Result.failure(e)
+            return Result.success("Task updated!")
+        } else {
+            return Result.failure(Exception("Todo not found locally"))
         }
     }
 
     suspend fun deleteTodo(token: String, todoId: String): Result<String> {
-        return try {
-            val response = todoApi.deleteTodo("Bearer $token", todoId)
+        todoDao.softDeleteTodo(todoId)
+        Log.d("TodoRepository", "Todo soft deleted locally: $todoId")
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                todoDao.deleteTodoById(todoId)
-                Result.success(response.body()?.message ?: "Task deleted!")
-            } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to delete task"))
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = todoApi.deleteTodo("Bearer $token", todoId)
+
+                if (response.isSuccessful && response.body()?.success == true) {
+                    todoDao.markTodoAsSynced(todoId)
+                    todoDao.hardDeleteSyncedTodo(todoId)
+                    Log.d("TodoRepository", "Todo deletion synced successfully: $todoId")
+                } else {
+                    Log.w("TodoRepository", "Failed to sync todo deletion: ${response.body()?.message}")
+                }
+            } catch (e: Exception) {
+                Log.w("TodoRepository", "Background sync failed for todo deletion", e)
             }
-        } catch (e: IOException) {
-            todoDao.deleteTodoById(todoId)
-
-            Log.d("TodoRepository", "Offline - deleting locally for later sync")
-            Result.failure(Exception("Offline - deletion will be synced later"))
-        } catch (e: Exception) {
-            Log.e("TodoRepository", "Error deleting todo", e)
-            Result.failure(e)
         }
+
+        return Result.success("Task deleted!")
     }
 
     suspend fun toggleTodoStatus(token: String, todoId: String): Result<String> {
-        return try {
-            val response = todoApi.toggleTodoStatus("Bearer $token", todoId)
+        val existingTodo = todoDao.getTodoById(todoId)
+        if (existingTodo != null) {
+            val newStatus = !existingTodo.isDone
 
-            if (response.isSuccessful && response.body()?.success == true) {
-                val updatedTodo = response.body()?.data
-                if (updatedTodo != null) {
-                    todoDao.insertTodo(TodoEntity.fromTodoItem(updatedTodo))
+            todoDao.toggleTodoStatus(todoId, newStatus, isSynced = false, syncOperation = "UPDATE")
+            Log.d("TodoRepository", "Todo status toggled locally: $todoId -> $newStatus")
+
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val response = todoApi.toggleTodoStatus("Bearer $token", todoId)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val serverTodo = response.body()?.data
+                        if (serverTodo != null) {
+                            todoDao.insertTodo(TodoEntity.fromTodoItem(serverTodo))
+                            Log.d("TodoRepository", "Todo status sync successful: $todoId")
+                        }
+                    } else {
+                        Log.w("TodoRepository", "Failed to sync todo status: ${response.body()?.message}")
+                    }
+                } catch (e: Exception) {
+                    Log.w("TodoRepository", "Background sync failed for todo status", e)
                 }
-                Result.success(response.body()?.message ?: "Task status updated!")
-            } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to toggle task status"))
-            }
-        } catch (e: IOException) {
-            val existingTodo = todoDao.getTodoById(todoId)
-            if (existingTodo != null) {
-                todoDao.toggleTodoStatus(todoId, !existingTodo.isDone)
             }
 
-            Log.d("TodoRepository", "Offline - toggling status for later sync")
-            Result.failure(Exception("Offline - status change will be synced later"))
+            return Result.success("Task status updated!")
+        } else {
+            return Result.failure(Exception("Todo not found locally"))
+        }
+    }
+
+    private suspend fun syncPendingChanges(token: String) {
+        try {
+            val todosToCreate = todoDao.getTodosToCreate()
+            for (todo in todosToCreate) {
+                try {
+                    val request = CreateTodoRequest(
+                        todo.taskTitle, todo.taskDescription,
+                        todo.startTime, todo.endTime, todo.date
+                    )
+                    val response = todoApi.createTodo("Bearer $token", request)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val serverTodo = response.body()?.data
+                        if (serverTodo != null) {
+                            todoDao.deleteTodoById(todo.todoId)
+                            todoDao.insertTodo(TodoEntity.fromTodoItem(serverTodo))
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w("TodoRepository", "Failed to sync create for ${todo.todoId}", e)
+                }
+            }
+
+            val todosToUpdate = todoDao.getTodosToUpdate()
+            for (todo in todosToUpdate) {
+                if (todo.syncOperation == "UPDATE") {
+                    try {
+                        val request = UpdateTodoRequest(
+                            todo.taskTitle, todo.taskDescription,
+                            todo.startTime, todo.endTime, todo.date
+                        )
+                        val response = todoApi.updateTodo("Bearer $token", todo.todoId, request)
+
+                        if (response.isSuccessful && response.body()?.success == true) {
+                            val serverTodo = response.body()?.data
+                            if (serverTodo != null) {
+                                todoDao.insertTodo(TodoEntity.fromTodoItem(serverTodo))
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w("TodoRepository", "Failed to sync update for ${todo.todoId}", e)
+                    }
+                }
+            }
+
+            val todosToDelete = todoDao.getTodosToDelete()
+            for (todo in todosToDelete) {
+                try {
+                    val response = todoApi.deleteTodo("Bearer $token", todo.todoId)
+
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        todoDao.hardDeleteSyncedTodo(todo.todoId)
+                    }
+                } catch (e: Exception) {
+                    Log.w("TodoRepository", "Failed to sync delete for ${todo.todoId}", e)
+                }
+            }
+
+            Log.d("TodoRepository", "Sync completed: ${todosToCreate.size} creates, ${todosToUpdate.size} updates, ${todosToDelete.size} deletes")
+
         } catch (e: Exception) {
-            Log.e("TodoRepository", "Error toggling todo status", e)
-            Result.failure(e)
+            Log.e("TodoRepository", "Error during sync", e)
+        }
+    }
+
+    suspend fun getLocalTodos(): List<TodoItem> {
+        return try {
+            todoDao.getAllTodos().map { it.toTodoItem() }
+        } catch (e: Exception) {
+            Log.e("TodoRepository", "Error getting local todos", e)
+            emptyList()
         }
     }
 }

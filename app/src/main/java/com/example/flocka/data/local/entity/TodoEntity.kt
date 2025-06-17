@@ -18,7 +18,10 @@ data class TodoEntity(
     val createdAt: String,
     val updatedAt: String,
     val fetchedAt: Long = System.currentTimeMillis(),
-    val isLocalOnly: Boolean = false
+    val isLocalOnly: Boolean = false,
+    val isSynced: Boolean = true,
+    val syncOperation: String? = null, // "CREATE", "UPDATE", "DELETE"
+    val isDeleted: Boolean = false
 ) {
     fun toTodoItem(): TodoItem {
         return TodoItem(
@@ -47,7 +50,8 @@ data class TodoEntity(
                 date = todoItem.date,
                 isDone = todoItem.isDone,
                 createdAt = todoItem.createdAt,
-                updatedAt = todoItem.updatedAt
+                updatedAt = todoItem.updatedAt,
+                isSynced = true
             )
         }
     }

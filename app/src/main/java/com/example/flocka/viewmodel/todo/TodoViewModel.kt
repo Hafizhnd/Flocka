@@ -17,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import java.util.TreeMap
+import java.util.UUID
 
 fun Calendar.setToMidnight(): Calendar {
     this.set(Calendar.HOUR_OF_DAY, 0)
@@ -157,6 +158,12 @@ class TodoViewModel(
         _groupedTodos.value = sortedGroupedTodos
     }
 
+    private fun updateTodosInState(updater: (List<TodoItem>) -> List<TodoItem>) {
+        val updatedTodos = updater(_todos.value)
+        _todos.value = updatedTodos
+        groupAndSortTodos(updatedTodos)
+    }
+
     fun fetchTodos(token: String) {
         viewModelScope.launch {
             _errorMessage.value = null
@@ -210,8 +217,8 @@ class TodoViewModel(
                 ).fold(
                     onSuccess = { message ->
                         _operationResult.value = Result.success(message)
-                        fetchTodos(token)
                         Log.d("TodoViewModel", "Todo added successfully")
+                        refreshTodosFromLocal()
                     },
                     onFailure = { exception ->
                         _errorMessage.value = exception.message ?: "Failed to add task"
@@ -224,6 +231,17 @@ class TodoViewModel(
                 _operationResult.value = Result.failure(e)
                 Log.e("TodoViewModel", "Unexpected error in addTodo", e)
             }
+        }
+    }
+
+    private suspend fun refreshTodosFromLocal() {
+        try {
+            val localTodos = todoRepository.getLocalTodos()
+            _todos.value = localTodos
+            groupAndSortTodos(localTodos)
+            Log.d("TodoViewModel", "UI refreshed with ${localTodos.size} local todos")
+        } catch (e: Exception) {
+            Log.e("TodoViewModel", "Failed to refresh from local", e)
         }
     }
 
@@ -249,16 +267,44 @@ class TodoViewModel(
                     return@launch
                 }
 
+                val originalTodo = _todos.value.find { it.todoId == todoId }
+
+                updateTodosInState { currentTodos ->
+                    currentTodos.map { todo ->
+                        if (todo.todoId == todoId) {
+                            todo.copy(
+                                taskTitle = taskTitle ?: todo.taskTitle,
+                                taskDescription = taskDescription ?: todo.taskDescription,
+                                startTime = formattedStartTime ?: todo.startTime,
+                                endTime = formattedEndTime ?: todo.endTime,
+                                date = formattedDate ?: todo.date,
+                                updatedAt = System.currentTimeMillis().toString()
+                            )
+                        } else {
+                            todo
+                        }
+                    }
+                }
+
                 todoRepository.updateTodo(
                     token, todoId, taskTitle, taskDescription,
                     formattedStartTime, formattedEndTime, formattedDate
                 ).fold(
                     onSuccess = { message ->
                         _operationResult.value = Result.success(message)
-                        fetchTodos(token)
                         Log.d("TodoViewModel", "Todo updated successfully")
+
+                        fetchTodos(token)
                     },
                     onFailure = { exception ->
+                        if (originalTodo != null) {
+                            updateTodosInState { currentTodos ->
+                                currentTodos.map { todo ->
+                                    if (todo.todoId == todoId) originalTodo else todo
+                                }
+                            }
+                        }
+
                         _errorMessage.value = exception.message ?: "Failed to update task"
                         _operationResult.value = Result.failure(exception)
                         Log.e("TodoViewModel", "Failed to update todo", exception)
@@ -277,13 +323,26 @@ class TodoViewModel(
             _operationResult.value = null
             _errorMessage.value = null
             try {
+                val originalTodo = _todos.value.find { it.todoId == todoId }
+
+                updateTodosInState { currentTodos ->
+                    currentTodos.filter { it.todoId != todoId }
+                }
+
                 todoRepository.deleteTodo(token, todoId).fold(
                     onSuccess = { message ->
                         _operationResult.value = Result.success(message)
-                        fetchTodos(token)
                         Log.d("TodoViewModel", "Todo deleted successfully")
+
+                        fetchTodos(token)
                     },
                     onFailure = { exception ->
+                        if (originalTodo != null) {
+                            updateTodosInState { currentTodos ->
+                                currentTodos + originalTodo
+                            }
+                        }
+
                         _errorMessage.value = exception.message ?: "Failed to delete task"
                         _operationResult.value = Result.failure(exception)
                         Log.e("TodoViewModel", "Failed to delete todo", exception)
@@ -293,6 +352,58 @@ class TodoViewModel(
                 _errorMessage.value = "Unexpected error deleting task: ${e.message}"
                 _operationResult.value = Result.failure(e)
                 Log.e("TodoViewModel", "Unexpected error in deleteTodoOnCheck", e)
+            }
+        }
+    }
+
+    fun toggleTodoStatus(token: String, todoId: String) {
+        viewModelScope.launch {
+            _operationResult.value = null
+            _errorMessage.value = null
+            try {
+                // Store original todo for rollback if needed
+                val originalTodo = _todos.value.find { it.todoId == todoId }
+                val newStatus = !(originalTodo?.isDone ?: false)
+
+                // Immediately update UI state
+                updateTodosInState { currentTodos ->
+                    currentTodos.map { todo ->
+                        if (todo.todoId == todoId) {
+                            todo.copy(
+                                isDoneInt = if (newStatus) 1 else 0,
+                                updatedAt = System.currentTimeMillis().toString()
+                            )
+                        } else {
+                            todo
+                        }
+                    }
+                }
+
+                todoRepository.toggleTodoStatus(token, todoId).fold(
+                    onSuccess = { message ->
+                        _operationResult.value = Result.success(message)
+                        Log.d("TodoViewModel", "Todo status toggled successfully")
+
+                        fetchTodos(token)
+                    },
+                    onFailure = { exception ->
+                        if (originalTodo != null) {
+                            updateTodosInState { currentTodos ->
+                                currentTodos.map { todo ->
+                                    if (todo.todoId == todoId) originalTodo else todo
+                                }
+                            }
+                        }
+
+                        _errorMessage.value = exception.message ?: "Failed to toggle task status"
+                        _operationResult.value = Result.failure(exception)
+                        Log.e("TodoViewModel", "Failed to toggle todo status", exception)
+                    }
+                )
+            } catch (e: Exception) {
+                _errorMessage.value = "Unexpected error toggling task status: ${e.message}"
+                _operationResult.value = Result.failure(e)
+                Log.e("TodoViewModel", "Unexpected error in toggleTodoStatus", e)
             }
         }
     }
