@@ -55,7 +55,7 @@ class QuizRepository(
         answerGiven: Int
     ): Result<QuizResultResponseData> {
         return try {
-            val request = QuizAnswerRequest(quizId, answerGiven)
+            val request = QuizAnswerRequest(quizId, answerGiven.toString())
             val response = quizApi.submitQuizAnswer("Bearer $token", request)
 
             if (response.isSuccessful && response.body()?.success == true) {

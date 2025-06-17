@@ -1,7 +1,7 @@
 package com.example.flocka.data.local.entity
 
+import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.flocka.data.local.entity.QuizEntity.Entity
 import com.example.flocka.data.model.QuizQuestion
 
 @Entity(tableName = "quiz_questions")
