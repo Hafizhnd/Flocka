@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.profile.ui.EditProfileScreen
 import com.example.flocka.profile.ui.ProfileScreen
 import com.example.flocka.profile.ui.TicketScreen
@@ -39,7 +40,8 @@ fun MainNavGraph(
     navController: NavHostController, 
     paddingValues: PaddingValues, 
     token: String,
-    communityRepository: CommunityRepository
+    communityRepository: CommunityRepository,
+    spaceRepository: SpaceRepository
 ) {
     NavHost(
         navController = navController,
@@ -103,6 +105,7 @@ fun MainNavGraph(
         composable("workspace") { WorkspaceUI(
             token = token,
             onBackClick = { navController.popBackStack() },
+            spaceRepository = spaceRepository,
             onSpaceCardClick = { spaceId ->
                 navController.navigate("space_detail/$spaceId")
             }
@@ -115,6 +118,7 @@ fun MainNavGraph(
             InfoSpaceUI(
                 spaceId = spaceId,
                 token = token,
+                spaceRepository = spaceRepository,
                 onBackClick = { navController.popBackStack() }
             )
         }

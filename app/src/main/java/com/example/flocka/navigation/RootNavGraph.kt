@@ -5,13 +5,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.ui.onboarding.*
 import com.example.flocka.ui.screens.MainScreen
 
 @Composable
 fun RootNavGraph(
     navController: NavHostController,
-    communityRepository: CommunityRepository
+    communityRepository: CommunityRepository,
+    spaceRepository: SpaceRepository
 ) {
     NavHost(
         navController = navController,
@@ -85,7 +87,8 @@ fun RootNavGraph(
             val token = backStackEntry.arguments?.getString("token") ?: ""
             MainScreen(
                 token = token,
-                communityRepository = communityRepository
+                communityRepository = communityRepository,
+                spaceRepository = spaceRepository
             )
         }
     }

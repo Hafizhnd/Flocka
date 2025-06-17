@@ -16,18 +16,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val communityRepository = AppModule.provideCommunityRepository(applicationContext)
+        val spaceRepository = AppModule.provideSpaceRepository(applicationContext)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        hideSystemUI()
 
         setContent {
             val navController = androidx.navigation.compose.rememberNavController()
             RootNavGraph(
                 navController = navController,
-                communityRepository = communityRepository
+                communityRepository = communityRepository,
+                spaceRepository = spaceRepository
             )
         }
+
+        hideSystemUI()
     }
 
     private fun hideSystemUI() {
