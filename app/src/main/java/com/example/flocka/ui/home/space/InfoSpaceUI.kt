@@ -48,13 +48,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -63,9 +60,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.flocka.R
 import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
-import com.example.flocka.ui.components.payment.PaymentMethods
 import com.example.flocka.ui.components.sansationFontFamily
 import com.example.flocka.viewmodel.OrderViewModel
 import com.example.flocka.viewmodel.space.SpaceViewModel
@@ -78,9 +75,14 @@ import java.util.Locale
 fun InfoSpaceUI(
     spaceId: String,
     token: String,
-    spaceViewModel: SpaceViewModel = viewModel(),
+    spaceRepository: SpaceRepository,
     onBackClick: () -> Unit
 ) {
+
+    val spaceViewModel: SpaceViewModel = viewModel(
+        factory = SpaceViewModel.Factory(spaceRepository)
+    )
+
     var showOrderDialog by remember { mutableStateOf(false) }
     var showPaymentDialog by remember { mutableStateOf(false) }
     var showPaymentSuccess by remember { mutableStateOf(false) }
@@ -291,15 +293,4 @@ private fun InfoDetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector,
             color = Color.Gray,
         )
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun InfoSpacePreview() {
-    InfoSpaceUI(
-        spaceId = "previewEventId",
-        token = "previewToken",
-        onBackClick = {}
-    )
 }
