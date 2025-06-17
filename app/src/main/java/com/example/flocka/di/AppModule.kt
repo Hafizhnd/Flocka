@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.flocka.data.local.database.AppDatabase
 import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
 
@@ -24,5 +25,11 @@ object AppModule {
         val database = AppDatabase.getInstance(context)
         val spaceApi = RetrofitClient.spaceApi
         return SpaceRepository(spaceApi, database.spaceDao())
+    }
+
+    fun provideOrderRepository(context: Context): OrderRepository {
+        val database = AppDatabase.getInstance(context)
+        val orderApi = RetrofitClient.orderApi
+        return OrderRepository(orderApi, database.orderDao())
     }
 }

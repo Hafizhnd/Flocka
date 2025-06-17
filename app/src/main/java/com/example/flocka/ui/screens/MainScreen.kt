@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.navigation.MainNavGraph
@@ -25,6 +26,7 @@ fun MainScreen(
     communityRepository: CommunityRepository,
     spaceRepository: SpaceRepository,
     quizRepository: QuizRepository,
+    orderRepository: OrderRepository,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val navController = rememberNavController()
@@ -75,7 +77,8 @@ fun MainScreen(
                 token = token,
                 communityRepository = communityRepository,
                 quizRepository = quizRepository,
-                spaceRepository = spaceRepository
+                spaceRepository = spaceRepository,
+                orderRepository = orderRepository
             )
         }
     }

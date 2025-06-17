@@ -1,4 +1,4 @@
-package com.example.flocka.data.model // Or your chosen model package
+package com.example.flocka.data.model
 
 import com.google.gson.annotations.SerializedName
 

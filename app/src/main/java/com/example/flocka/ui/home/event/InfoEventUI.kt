@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.flocka.R
 import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.payment.PaymentMethods
@@ -75,9 +76,14 @@ fun InfoEventUI(
     eventId: String,
     token: String,
     eventViewModel: EventViewModel = viewModel(),
+    orderRepository: OrderRepository,
     onBackClick: () -> Unit
 ) {
     Log.d("EventFlow", "InfoEventUI composable launched with eventId: $eventId")
+
+    val orderViewModel: OrderViewModel = viewModel(
+        factory = OrderViewModel.Factory(orderRepository)
+    )
 
     var showOrderDialog by remember { mutableStateOf(false) }
     var showPaymentDialog by remember { mutableStateOf(false) }
@@ -313,7 +319,6 @@ fun InfoEventUI(
         )
     }
     if (showPaymentDialog && selectedEvent != null) {
-        val orderViewModel: OrderViewModel = viewModel()
         PaymentMethodDialog(
             onDismiss = { showPaymentDialog = false },
             onPay = {
@@ -741,17 +746,6 @@ fun OrderDetailsDialog(
             }
         }
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun InfoEventPreview() {
-    InfoEventUI(
-        eventId = "previewEventId",
-        token = "previewToken",
-        onBackClick = {}
-    )
 }
 
 @Preview

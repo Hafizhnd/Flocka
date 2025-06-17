@@ -60,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.flocka.R
 import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
@@ -76,11 +77,16 @@ fun InfoSpaceUI(
     spaceId: String,
     token: String,
     spaceRepository: SpaceRepository,
+    orderRepository: OrderRepository,
     onBackClick: () -> Unit
 ) {
 
     val spaceViewModel: SpaceViewModel = viewModel(
         factory = SpaceViewModel.Factory(spaceRepository)
+    )
+
+    val orderViewModel: OrderViewModel = viewModel(
+        factory = OrderViewModel.Factory(orderRepository)
     )
 
     var showOrderDialog by remember { mutableStateOf(false) }
@@ -238,7 +244,6 @@ fun InfoSpaceUI(
     }
 
     if (showPaymentDialog && selectedSpace != null) {
-        val orderViewModel: OrderViewModel = viewModel()
         val calendar = Calendar.getInstance()
 
         val day = calendar.get(Calendar.DAY_OF_MONTH)

@@ -5,9 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.flocka.data.local.dao.CommunityDao
+import com.example.flocka.data.local.dao.OrderDao
 import com.example.flocka.data.local.dao.SpaceDao
 import com.example.flocka.data.local.dao.QuizDao
 import com.example.flocka.data.local.entity.CommunityEntity
+import com.example.flocka.data.local.entity.OrderEntity
 import com.example.flocka.data.local.entity.SpaceEntity
 import com.example.flocka.data.local.entity.QuizEntity
 import com.example.flocka.data.local.entity.QuizResultEntity
@@ -17,15 +19,17 @@ import com.example.flocka.data.local.entity.QuizResultEntity
         CommunityEntity::class,
         QuizEntity::class,
         QuizResultEntity::class,
-        SpaceEntity::class
+        SpaceEntity::class,
+        OrderEntity::class,
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun communityDao(): CommunityDao
     abstract fun spaceDao(): SpaceDao
     abstract fun quizDao(): QuizDao
+    abstract fun orderDao(): OrderDao
 
     companion object {
         @Volatile

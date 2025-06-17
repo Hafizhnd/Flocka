@@ -1,14 +1,11 @@
 package com.example.flocka.profile.ui
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.foundation.lazy.LazyColumn // Add this import
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.rounded.CalendarToday
@@ -25,7 +22,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,6 +29,7 @@ import com.example.flocka.R
 import com.example.flocka.viewmodel.OrderViewModel
 import coil.compose.AsyncImage
 import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.sansationFontFamily
 
@@ -40,8 +37,13 @@ import com.example.flocka.ui.components.sansationFontFamily
 fun TicketScreen(
     token: String,
     onBackClick: () -> Unit,
-    orderViewModel: OrderViewModel = viewModel()
+    orderRepository: OrderRepository,
 ) {
+
+    val orderViewModel: OrderViewModel = viewModel(
+        factory = OrderViewModel.Factory(orderRepository)
+    )
+
     val activeOrders by orderViewModel.activeOrders.collectAsState()
     val archivedOrders by orderViewModel.archivedOrders.collectAsState()
     val errorMessage by orderViewModel.errorMessage.collectAsState()
