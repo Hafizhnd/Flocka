@@ -29,6 +29,7 @@ class OrderRepository(
             if (response.isSuccessful && response.body()?.success == true) {
                 val orders = response.body()?.data ?: emptyList()
 
+                orderDao.deleteAllSyncedOrders()
                 val orderEntities = orders.map { OrderEntity.fromOrderItem(it, isSynced = true) }
                 orderDao.insertOrders(orderEntities)
 
@@ -45,6 +46,7 @@ class OrderRepository(
             Result.failure(e)
         }
     }
+
 
     suspend fun createOrder(
         token: String,

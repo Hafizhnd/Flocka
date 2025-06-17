@@ -1,3 +1,4 @@
+
 package com.example.flocka.data.local.dao
 
 import androidx.room.*
@@ -32,4 +33,13 @@ interface OrderDao {
 
     @Query("DELETE FROM orders")
     suspend fun deleteAllOrders()
+
+    @Query("DELETE FROM orders WHERE isSynced = 1")
+    suspend fun deleteAllSyncedOrders()
+
+    @Transaction
+    suspend fun replaceAllSyncedOrders(orders: List<OrderEntity>) {
+        deleteAllSyncedOrders()
+        insertOrders(orders)
+    }
 }
