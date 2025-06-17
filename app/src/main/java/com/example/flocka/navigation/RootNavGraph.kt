@@ -8,6 +8,7 @@ import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
+import com.example.flocka.data.repository.TodoRepository
 import com.example.flocka.ui.onboarding.*
 import com.example.flocka.ui.screens.MainScreen
 
@@ -17,7 +18,8 @@ fun RootNavGraph(
     communityRepository: CommunityRepository,
     quizRepository: QuizRepository,
     spaceRepository: SpaceRepository,
-    orderRepository: OrderRepository
+    orderRepository: OrderRepository,
+    todoRepository: TodoRepository
 ) {
     NavHost(
         navController = navController,
@@ -94,7 +96,8 @@ fun RootNavGraph(
                 communityRepository = communityRepository,
                 quizRepository = quizRepository,
                 spaceRepository = spaceRepository,
-                orderRepository = orderRepository
+                orderRepository = orderRepository,
+                todoRepository = todoRepository
             )
         }
     }

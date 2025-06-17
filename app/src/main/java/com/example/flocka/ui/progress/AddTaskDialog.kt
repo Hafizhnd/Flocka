@@ -73,7 +73,7 @@ import java.util.Locale
 fun AddTaskDialog(
     token: String,
     onDismiss: () -> Unit,
-    todoViewModel: TodoViewModel = viewModel()
+    todoViewModel: TodoViewModel
 ) {
     var taskTitle by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
@@ -513,13 +513,4 @@ private fun DatePickerField(date: String, onDateSelected: (String) -> Unit) {
             )
         }
     }
-}
-
-@Preview()
-@Composable
-fun AddTaskDialogPreview() {
-    AddTaskDialog(
-        onDismiss = {},
-        token = "dummyToken"
-    )
 }
