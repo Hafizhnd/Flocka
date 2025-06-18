@@ -5,12 +5,16 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.flocka.data.local.dao.CommunityDao
+import com.example.flocka.data.local.dao.EventDao
 import com.example.flocka.data.local.dao.OrderDao
+import com.example.flocka.data.local.dao.PendingOperationDao
 import com.example.flocka.data.local.dao.SpaceDao
 import com.example.flocka.data.local.dao.QuizDao
 import com.example.flocka.data.local.dao.TodoDao
 import com.example.flocka.data.local.entity.CommunityEntity
+import com.example.flocka.data.local.entity.EventEntity
 import com.example.flocka.data.local.entity.OrderEntity
+import com.example.flocka.data.local.entity.PendingOperationEntity
 import com.example.flocka.data.local.entity.SpaceEntity
 import com.example.flocka.data.local.entity.QuizEntity
 import com.example.flocka.data.local.entity.QuizResultEntity
@@ -23,9 +27,11 @@ import com.example.flocka.data.local.entity.TodoEntity
         QuizResultEntity::class,
         SpaceEntity::class,
         OrderEntity::class,
-        TodoEntity::class
+        TodoEntity::class,
+        EventEntity::class,
+        PendingOperationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,6 +40,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun spaceDao(): SpaceDao
     abstract fun quizDao(): QuizDao
     abstract fun orderDao(): OrderDao
+    abstract fun eventDao() : EventDao
+    abstract fun pendingOperationDao() : PendingOperationDao
 
     companion object {
         @Volatile

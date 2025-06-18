@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.EventRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
@@ -19,7 +20,8 @@ fun RootNavGraph(
     quizRepository: QuizRepository,
     spaceRepository: SpaceRepository,
     orderRepository: OrderRepository,
-    todoRepository: TodoRepository
+    todoRepository: TodoRepository,
+    eventRepository: EventRepository
 ) {
     NavHost(
         navController = navController,
@@ -97,7 +99,8 @@ fun RootNavGraph(
                 quizRepository = quizRepository,
                 spaceRepository = spaceRepository,
                 orderRepository = orderRepository,
-                todoRepository = todoRepository
+                todoRepository = todoRepository,
+                eventRepository = eventRepository
             )
         }
     }

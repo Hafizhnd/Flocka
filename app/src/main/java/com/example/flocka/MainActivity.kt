@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
         val quizRepository = AppModule.provideQuizRepository(applicationContext)
         val orderRepository = AppModule.provideOrderRepository(applicationContext)
         val todoRepository = AppModule.provideTodoRepository(applicationContext)
+        val eventRepository = AppModule.provideEventRepository(applicationContext)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -31,7 +32,8 @@ class MainActivity : ComponentActivity() {
                 todoRepository = todoRepository,
                 spaceRepository = spaceRepository,
                 quizRepository  = quizRepository,
-                orderRepository = orderRepository
+                orderRepository = orderRepository,
+                eventRepository = eventRepository
             )
         }
 

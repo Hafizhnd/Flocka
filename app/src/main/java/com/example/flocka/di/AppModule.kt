@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.flocka.data.local.database.AppDatabase
 import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.EventRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
@@ -37,5 +38,10 @@ object AppModule {
         val database = AppDatabase.getInstance(context)
         val todoApi = RetrofitClient.todoApi
         return TodoRepository(todoApi, database.todoDao())
+    }
+    fun provideEventRepository(context: Context): EventRepository {
+        val database = AppDatabase.getInstance(context)
+        val eventApi = RetrofitClient.eventApi
+        return EventRepository(eventApi, database.eventDao(), database.pendingOperationDao(), context)
     }
 }

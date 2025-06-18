@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.EventRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
@@ -47,7 +48,8 @@ fun MainNavGraph(
     quizRepository: QuizRepository,
     spaceRepository: SpaceRepository,
     orderRepository: OrderRepository,
-    todoRepository: TodoRepository
+    todoRepository: TodoRepository,
+    eventRepository: EventRepository
 ) {
     NavHost(
         navController = navController,
@@ -138,7 +140,8 @@ fun MainNavGraph(
             onBackClick = { navController.popBackStack() },
             onEventCardClick = { eventId ->
                 navController.navigate("event_detail/$eventId")
-            }
+            },
+            eventRepository = eventRepository
         ) }
 
         composable(
@@ -150,8 +153,8 @@ fun MainNavGraph(
             InfoEventUI(
                 eventId = eventId,
                 token = token,
-                orderRepository = orderRepository,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                eventRepository = eventRepository
             )
         }
 

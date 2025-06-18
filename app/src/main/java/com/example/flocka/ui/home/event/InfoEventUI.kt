@@ -62,7 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.flocka.R
 import com.example.flocka.data.remote.RetrofitClient
-import com.example.flocka.data.repository.OrderRepository
+import com.example.flocka.data.repository.EventRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.payment.PaymentMethods
@@ -75,14 +75,13 @@ import java.util.Calendar
 fun InfoEventUI(
     eventId: String,
     token: String,
-    eventViewModel: EventViewModel = viewModel(),
-    orderRepository: OrderRepository,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    eventRepository: EventRepository
 ) {
     Log.d("EventFlow", "InfoEventUI composable launched with eventId: $eventId")
 
-    val orderViewModel: OrderViewModel = viewModel(
-        factory = OrderViewModel.Factory(orderRepository)
+    val eventViewModel: EventViewModel = viewModel(
+        factory = EventViewModel.Factory(eventRepository)
     )
 
     var showOrderDialog by remember { mutableStateOf(false) }
@@ -319,6 +318,7 @@ fun InfoEventUI(
         )
     }
     if (showPaymentDialog && selectedEvent != null) {
+        val orderViewModel: OrderViewModel = viewModel()
         PaymentMethodDialog(
             onDismiss = { showPaymentDialog = false },
             onPay = {
@@ -430,96 +430,96 @@ fun PaymentMethodDialog(
     onDismiss: () -> Unit,
     onPay: () -> Unit
 ) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .wrapContentHeight(Alignment.Bottom)
+            .background(Color.Transparent)
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .wrapContentHeight(Alignment.Bottom)
-                .background(Color.Transparent)
+                .fillMaxWidth()
+                .height(740.dp)
+                .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
+                .background(Color.White)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(740.dp)
-                    .align(Alignment.BottomCenter)
-                    .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
-                    .background(Color.White)
+                    .fillMaxSize()
+                    .padding(top = 34.dp, bottom = 39.dp)
+                    .padding(horizontal = 40.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 34.dp, bottom = 39.dp)
-                        .padding(horizontal = 40.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_back_task),
-                            contentDescription = "Back",
-                            modifier = Modifier
-                                .size(18.dp)
-                                .clickable { onDismiss() }
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 18.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Payment Summary",
-                                fontFamily = sansationFontFamily,
-                                fontSize = 20.sp,
-                                color = BluePrimary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(7.dp))
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_back_task),
+                        contentDescription = "Back",
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable { onDismiss() }
+                    )
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(end = 18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Review your order and pay",
+                            text = "Payment Summary",
                             fontFamily = sansationFontFamily,
-                            fontSize = 12.sp,
-                            color = OrangePrimary,
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Image(
-                            painter = painterResource(R.drawable.img_event_payment),
-                            contentDescription = "order summary",
-                            modifier = Modifier
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        PaymentMethods()
-                    }
-
-                    Spacer(modifier = Modifier.height(15.dp))
-                    Button(
-                        onClick = { onPay() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(45.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        elevation = ButtonDefaults.buttonElevation(0.dp)
-                    ) {
-                        Text(
-                            text = "Pay",
-                            color = Color.White,
-                            fontFamily = sansationFontFamily,
-                            fontSize = 14.sp,
+                            fontSize = 20.sp,
+                            color = BluePrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(7.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Review your order and pay",
+                        fontFamily = sansationFontFamily,
+                        fontSize = 12.sp,
+                        color = OrangePrimary,
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Image(
+                        painter = painterResource(R.drawable.img_event_payment),
+                        contentDescription = "order summary",
+                        modifier = Modifier
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    PaymentMethods()
+                }
+
+                Spacer(modifier = Modifier.height(15.dp))
+                Button(
+                    onClick = { onPay() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(45.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                    shape = RoundedCornerShape(10.dp),
+                    elevation = ButtonDefaults.buttonElevation(0.dp)
+                ) {
+                    Text(
+                        text = "Pay",
+                        color = Color.White,
+                        fontFamily = sansationFontFamily,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
+}
 
 
 @OptIn(ExperimentalMaterial3Api::class)

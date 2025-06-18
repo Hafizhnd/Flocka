@@ -30,3 +30,14 @@ data class EventSuccessResponse<T>(
     @SerializedName("data") val data: T?,
     @SerializedName("message") val message: String? = null
 )
+
+data class CreateEventRequest(
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String?,
+    @SerializedName("event_date") val eventDate: String, // Format: YYYY-MM-DD
+    @SerializedName("start_time") val startTime: String, // ISO date string or your preferred format
+    @SerializedName("end_time") val endTime: String,     // ISO date string or your preferred format
+    @SerializedName("location") val location: String,
+    @SerializedName("image") val image: String?,
+    @SerializedName("cost") val cost: Double?
+)

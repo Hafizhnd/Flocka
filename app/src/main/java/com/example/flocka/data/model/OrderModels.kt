@@ -33,3 +33,13 @@ data class OrderSuccessResponse<T>(
     @SerializedName("data") val data: T?,
     @SerializedName("message") val message: String? = null
 )
+
+data class OrderDetails(
+    val email: String,
+    val name: String,
+    val phone: String,
+    val type: String,
+    val duration: Int,
+    val date: String,
+    val promoCode: String
+)
