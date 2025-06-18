@@ -10,11 +10,23 @@ interface QuizDao {
     @Query("SELECT * FROM quiz_questions WHERE isUsed = 0 ORDER BY fetchedAt DESC LIMIT 1")
     suspend fun getUnusedQuizQuestion(): QuizEntity?
 
+    @Query("SELECT * FROM quiz_questions ORDER BY RANDOM() LIMIT 1")
+    suspend fun getRandomQuizQuestion(): QuizEntity?
+
     @Query("SELECT * FROM quiz_questions WHERE quizId = :quizId")
     suspend fun getQuizById(quizId: String): QuizEntity?
 
+    @Query("SELECT correctAnswer FROM quiz_questions WHERE quizId = :quizId")
+    suspend fun getCorrectAnswerForQuiz(quizId: String): Int? // Add this method
+
     @Query("SELECT * FROM quiz_questions ORDER BY fetchedAt DESC")
     fun getAllQuizQuestions(): Flow<List<QuizEntity>>
+
+    @Query("SELECT * FROM quiz_questions WHERE isSynced = 0")
+    suspend fun getUnsyncedQuizQuestions(): List<QuizEntity>
+
+    @Query("SELECT * FROM quiz_results WHERE isSynced = 0")
+    suspend fun getUnsyncedQuizResults(): List<QuizResultEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQuizQuestion(quiz: QuizEntity)
@@ -24,6 +36,12 @@ interface QuizDao {
 
     @Query("UPDATE quiz_questions SET isUsed = 1 WHERE quizId = :quizId")
     suspend fun markQuizAsUsed(quizId: String)
+
+    @Query("UPDATE quiz_questions SET isSynced = 1 WHERE quizId = :quizId")
+    suspend fun markQuizAsSynced(quizId: String)
+
+    @Query("UPDATE quiz_results SET isSynced = 1 WHERE quizId = :quizId")
+    suspend fun markQuizResultAsSynced(quizId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQuizResult(result: QuizResultEntity)
