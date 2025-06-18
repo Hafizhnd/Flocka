@@ -11,11 +11,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.flocka.data.repository.CommunityRepository
+
 import com.example.flocka.data.repository.EventRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.data.repository.TodoRepository
+
 import com.example.flocka.profile.ui.EditProfileScreen
 import com.example.flocka.profile.ui.ProfileScreen
 import com.example.flocka.profile.ui.TicketScreen
@@ -45,11 +47,13 @@ fun MainNavGraph(
     paddingValues: PaddingValues,
     token: String,
     communityRepository: CommunityRepository,
+
     quizRepository: QuizRepository,
     spaceRepository: SpaceRepository,
     orderRepository: OrderRepository,
     todoRepository: TodoRepository,
     eventRepository: EventRepository
+
 ) {
     NavHost(
         navController = navController,

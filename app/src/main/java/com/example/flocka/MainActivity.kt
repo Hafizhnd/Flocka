@@ -8,6 +8,8 @@ import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
+import com.example.flocka.data.repository.CommunityRepository
+import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.di.AppModule
 import com.example.flocka.navigation.RootNavGraph
 
