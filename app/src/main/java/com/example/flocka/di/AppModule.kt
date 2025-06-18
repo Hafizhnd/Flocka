@@ -7,6 +7,7 @@ import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
+import com.example.flocka.data.repository.TodoRepository
 
 object AppModule {
     fun provideCommunityRepository(context: Context): CommunityRepository {
@@ -31,5 +32,10 @@ object AppModule {
         val database = AppDatabase.getInstance(context)
         val orderApi = RetrofitClient.orderApi
         return OrderRepository(orderApi, database.orderDao())
+    }
+    fun provideTodoRepository(context: Context): TodoRepository {
+        val database = AppDatabase.getInstance(context)
+        val todoApi = RetrofitClient.todoApi
+        return TodoRepository(todoApi, database.todoDao())
     }
 }

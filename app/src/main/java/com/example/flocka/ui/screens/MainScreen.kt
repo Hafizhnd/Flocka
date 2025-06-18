@@ -15,6 +15,7 @@ import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.QuizRepository
 import com.example.flocka.data.repository.SpaceRepository
+import com.example.flocka.data.repository.TodoRepository
 import com.example.flocka.navigation.MainNavGraph
 import com.yourpackage.ui.components.BottomNavBar
 import com.yourpackage.ui.components.TopBar
@@ -27,6 +28,7 @@ fun MainScreen(
     spaceRepository: SpaceRepository,
     quizRepository: QuizRepository,
     orderRepository: OrderRepository,
+    todoRepository: TodoRepository,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val navController = rememberNavController()
@@ -78,7 +80,8 @@ fun MainScreen(
                 communityRepository = communityRepository,
                 quizRepository = quizRepository,
                 spaceRepository = spaceRepository,
-                orderRepository = orderRepository
+                orderRepository = orderRepository,
+                todoRepository = todoRepository
             )
         }
     }

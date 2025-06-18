@@ -73,7 +73,7 @@ fun EditTaskDialog(
     taskToEdit: TodoItem,
     token: String,
     onDismiss: () -> Unit,
-    todoViewModel: TodoViewModel = viewModel()
+    todoViewModel: TodoViewModel
 ) {
 
     var taskTitle by remember { mutableStateOf(taskToEdit.taskTitle) }

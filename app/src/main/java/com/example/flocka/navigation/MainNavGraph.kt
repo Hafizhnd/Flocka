@@ -14,6 +14,7 @@ import com.example.flocka.data.repository.CommunityRepository
 import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.data.repository.QuizRepository
+import com.example.flocka.data.repository.TodoRepository
 import com.example.flocka.profile.ui.EditProfileScreen
 import com.example.flocka.profile.ui.ProfileScreen
 import com.example.flocka.profile.ui.TicketScreen
@@ -45,7 +46,8 @@ fun MainNavGraph(
     communityRepository: CommunityRepository,
     quizRepository: QuizRepository,
     spaceRepository: SpaceRepository,
-    orderRepository: OrderRepository
+    orderRepository: OrderRepository,
+    todoRepository: TodoRepository
 ) {
     NavHost(
         navController = navController,
@@ -77,7 +79,9 @@ fun MainNavGraph(
 
         composable("progress") {
             ProgressMain(
-                token = token)
+                token = token,
+                todoRepository = todoRepository
+            )
         }
 
         composable("communities") {
@@ -183,7 +187,8 @@ fun MainNavGraph(
 
         composable("people") { PeoplePage() }
         composable("progress") { ProgressMain(
-            token = token
+            token = token,
+            todoRepository = todoRepository
         ) }
 
         composable("profile") { ProfileScreen(

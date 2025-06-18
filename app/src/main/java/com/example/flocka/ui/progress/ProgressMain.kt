@@ -16,12 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -29,27 +27,31 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flocka.R
 import com.example.flocka.data.model.TodoItem
+import com.example.flocka.data.repository.TodoRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.BlueSecondary
 import com.example.flocka.ui.components.sansationFontFamily
 import com.example.flocka.viewmodel.todo.TodoViewModel
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProgressMain(
     token: String,
-    todoViewModel: TodoViewModel = viewModel()
+    todoRepository: TodoRepository,
 ) {
+
+    val viewModel: TodoViewModel = viewModel(
+        factory = TodoViewModel.Factory(todoRepository)
+    )
+
     var showAddTaskDialog by remember { mutableStateOf(false) }
     var showEditTaskDialog by remember { mutableStateOf(false) }
     var currentTaskToEdit by remember { mutableStateOf<TodoItem?>(null) }
 
-    val groupedTodos by todoViewModel.groupedTodos.collectAsState()
-    val uiErrorMessage by todoViewModel.errorMessage.collectAsState()
-    val operationResult by todoViewModel.operationResult.collectAsState()
+    val groupedTodos by viewModel.groupedTodos.collectAsState()
+    val uiErrorMessage by viewModel.errorMessage.collectAsState()
+    val operationResult by viewModel.operationResult.collectAsState()
 
     var isLoading by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -59,7 +61,7 @@ fun ProgressMain(
         if (token.isNotBlank()) {
             isLoading = true
             Log.d("ProgressMain", "Token available, fetching todos...")
-            todoViewModel.fetchTodos(token)
+            viewModel.fetchTodos(token)
         } else {
             isLoading = false
             Log.w("ProgressMain", "Token is blank in ProgressMain. Cannot fetch.")
@@ -79,7 +81,7 @@ fun ProgressMain(
             coroutineScope.launch {
                 snackbarHostState.showSnackbar(message)
             }
-            todoViewModel.clearOperationResult()
+            viewModel.clearOperationResult()
         }
     }
 
@@ -129,7 +131,8 @@ fun ProgressMain(
                     ) {
                         AddTaskDialog(
                             token = token,
-                            onDismiss = { showAddTaskDialog = false }
+                            onDismiss = { showAddTaskDialog = false },
+                            todoViewModel = viewModel
                         )
                     }
                 }
@@ -142,7 +145,8 @@ fun ProgressMain(
                         EditTaskDialog(
                             taskToEdit = currentTaskToEdit!!,
                             token = token,
-                            onDismiss = { showEditTaskDialog = false }
+                            onDismiss = { showEditTaskDialog = false },
+                            todoViewModel = viewModel
                         )
                     }
                 }
@@ -187,7 +191,7 @@ fun ProgressMain(
                                     onCheckedChange = { isChecked ->
                                         if (isChecked) {
                                             if (token.isNotBlank()) {
-                                                todoViewModel.deleteTodoOnCheck(token, todoItem.todoId)
+                                                viewModel.deleteTodoOnCheck(token, todoItem.todoId)
                                             }
                                         }
                                     },
@@ -295,10 +299,4 @@ fun TaskCard(
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProgressMainPreview() {
-    ProgressMain(token = "preview_token")
 }
