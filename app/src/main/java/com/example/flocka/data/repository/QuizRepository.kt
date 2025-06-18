@@ -18,7 +18,6 @@ class QuizRepository(
     suspend fun getQuizQuestion(token: String): Result<QuizQuestion> {
         return try {
             syncUnsyncedData(token)
-
             val response = quizApi.getQuizQuestion("Bearer $token")
             if (response.isSuccessful && response.body()?.success == true) {
                 val question = response.body()?.data
@@ -48,6 +47,7 @@ class QuizRepository(
             Result.success(cachedQuestion.toQuizQuestion())
         } else {
             Result.failure(Exception("No questions available offline"))
+
         }
     }
 
@@ -66,10 +66,12 @@ class QuizRepository(
                     quizDao.markQuizAsUsed(quizId)
 
                     quizDao.insertQuizResult(
+
                         QuizResultEntity.fromQuizResultResponseData(
                             result,
                             answerGiven,
                             isSynced = true
+
                         )
                     )
 
@@ -181,4 +183,5 @@ class QuizRepository(
         val unsyncedResults = quizDao.getUnsyncedQuizResults()
         return unsyncedResults.isNotEmpty()
     }
+
 }

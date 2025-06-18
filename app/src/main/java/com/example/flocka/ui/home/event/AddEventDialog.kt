@@ -1,8 +1,13 @@
-package com.example.flocka.ui.progress
+package com.example.flocka.ui.home.event
 
+import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +16,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
@@ -49,19 +60,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flocka.data.model.TodoItem
+import coil.compose.AsyncImage
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.sansationFontFamily
-import com.example.flocka.viewmodel.auth.AuthViewModel
-import com.example.flocka.viewmodel.todo.TodoViewModel
+import com.example.flocka.viewmodel.event.CreateEventState
+import com.example.flocka.viewmodel.event.EventViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -69,46 +80,59 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditTaskDialog(
-    taskToEdit: TodoItem,
+fun AddEventDialog(
     token: String,
     onDismiss: () -> Unit,
-    todoViewModel: TodoViewModel
+    eventViewModel: EventViewModel = viewModel()
 ) {
+    var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var selectedStartTime by remember { mutableStateOf("") }
+    var selectedEndTime by remember { mutableStateOf("") }
+    var eventDate by remember { mutableStateOf("") }
+    var ticketPrice by remember { mutableStateOf("") }
+    val cost = ticketPrice.toDoubleOrNull() ?: 0.00
+    var location by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    var taskTitle by remember { mutableStateOf(taskToEdit.taskTitle) }
-    var taskDescription by remember { mutableStateOf(taskToEdit.taskDescription ?: "") }
-
-    fun formatTimeToUi(backendTime: String?): String {
-        return backendTime?.takeIf { it.length >= 5 }?.substring(0, 5) ?: ""
-    }
-
-    val inputDateFormatFromBackend = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val outputDateFormatForUi = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-
-    fun formatDateToUi(backendDate: String?): String {
-        if (backendDate.isNullOrBlank()) return ""
-        return try {
-            inputDateFormatFromBackend.parse(backendDate)?.let { outputDateFormatForUi.format(it) } ?: ""
-        } catch (e: Exception) { "" }
-    }
-
-    var selectedStartTime by remember { mutableStateOf(formatTimeToUi(taskToEdit.startTime)) }
-    var selectedEndTime by remember { mutableStateOf(formatTimeToUi(taskToEdit.endTime)) }
-    var selectedDate by remember { mutableStateOf(formatDateToUi(taskToEdit.date)) }
+    val createEventState by eventViewModel.createEventState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
     var dialogErrorMessage by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(todoViewModel.operationResult) {
-        todoViewModel.operationResult.value?.let { result ->
-            isLoading = false
-            if (result.isSuccess) {
-                onDismiss()
-            } else {
-                dialogErrorMessage = result.exceptionOrNull()?.message ?: "Failed to update task."
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
+
+    rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            imagePickerLauncher.launch("image/*")
+        }
+    }
+
+    LaunchedEffect(createEventState) {
+        when (createEventState) {
+            is CreateEventState.Loading -> {
+                isLoading = true
+                dialogErrorMessage = null
             }
-            todoViewModel.clearOperationResult()
+            is CreateEventState.Success -> {
+                isLoading = false
+                eventViewModel.resetCreateEventState()
+                onDismiss()
+            }
+            is CreateEventState.Error -> {
+                isLoading = false
+                val errorState = createEventState as CreateEventState.Error
+                dialogErrorMessage = errorState.message
+            }
+            is CreateEventState.Idle -> {
+                isLoading = false
+            }
         }
     }
 
@@ -121,7 +145,7 @@ fun EditTaskDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(530.dp)
+                .wrapContentHeight()
                 .align(Alignment.BottomCenter)
                 .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
                 .background(Color.White)
@@ -131,6 +155,7 @@ fun EditTaskDialog(
                     .fillMaxSize()
                     .padding(top = 34.dp, bottom = 39.dp)
                     .padding(horizontal = 25.dp)
+                    .verticalScroll(rememberScrollState())
             ){
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -145,7 +170,7 @@ fun EditTaskDialog(
                     )
                     Spacer(modifier = Modifier.width(15.dp))
                     Text(
-                        text = "Edit Task",
+                        text = "Add New Event",
                         fontFamily = sansationFontFamily,
                         fontSize = 16.sp,
                         color = BluePrimary,
@@ -159,15 +184,15 @@ fun EditTaskDialog(
                     Spacer(modifier = Modifier.height(40.dp))
 
                     Text(
-                        "Task Title",
+                        "Event Title",
                         fontFamily = sansationFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     BasicTextField(
-                        value = taskTitle,
-                        onValueChange = { taskTitle = it },
+                        value = name,
+                        onValueChange = { name = it },
                         singleLine = true,
                         textStyle = TextStyle(
                             fontSize = 13.sp,
@@ -186,9 +211,9 @@ fun EditTaskDialog(
                                     .padding(horizontal = 15.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
-                                if (taskTitle.isEmpty()) {
+                                if (name.isEmpty()) {
                                     Text(
-                                        text = "add your task title",
+                                        text = "add your event title",
                                         fontSize = 13.sp,
                                         fontFamily = sansationFontFamily,
                                         fontWeight = FontWeight.Normal,
@@ -203,15 +228,15 @@ fun EditTaskDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        "Task Description",
+                        "Event Description",
                         fontFamily = sansationFontFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     BasicTextField(
-                        value = taskDescription,
-                        onValueChange = { taskDescription = it },
+                        value = description,
+                        onValueChange = { description = it },
                         singleLine = false,
                         textStyle = TextStyle(
                             fontSize = 13.sp,
@@ -226,14 +251,187 @@ fun EditTaskDialog(
                         decorationBox = { innerTextField ->
                             Row(
                                 verticalAlignment = Alignment.Top,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(15.dp)
+                                modifier = Modifier.fillMaxSize().padding(15.dp)
                             ) {
                                 Box(modifier = Modifier.weight(1f)) {
-                                    if (taskDescription.isEmpty()) {
+                                    if (description.isEmpty()) {
                                         Text(
-                                            text = "add your task description",
+                                            text = "add your event description",
+                                            fontSize = 13.sp,
+                                            fontFamily = sansationFontFamily,
+                                            color = Color(0xFFD1D0D0)
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Event Image",
+                        fontFamily = sansationFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .border(
+                                1.dp,
+                                Color(0xFFD1D0D0),
+                                RoundedCornerShape(15.dp)
+                            )
+                            .clip(RoundedCornerShape(15.dp))
+                            .clickable {
+                                imagePickerLauncher.launch("image/*")
+                            }
+                    ) {
+                        if (selectedImageUri != null) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = "Selected event image",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Change image",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Text(
+                                        "Change Image",
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontFamily = sansationFontFamily
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add image",
+                                    tint = Color(0xFFD1D0D0),
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Add Event Image",
+                                    color = Color(0xFFD1D0D0),
+                                    fontSize = 13.sp,
+                                    fontFamily = sansationFontFamily
+                                )
+                                Text(
+                                    "Tap to select from gallery",
+                                    color = Color(0xFFD1D0D0),
+                                    fontSize = 11.sp,
+                                    fontFamily = sansationFontFamily
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Event Ticket Price",
+                        fontFamily = sansationFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    BasicTextField(
+                        value = ticketPrice,
+                        onValueChange = { newValue ->
+                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                ticketPrice = newValue
+                            }
+                        },
+                        singleLine = false,
+                        textStyle = TextStyle(
+                            fontSize = 13.sp,
+                            fontFamily = sansationFontFamily,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Black
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(66.dp)
+                            .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
+                        decorationBox = { innerTextField ->
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                modifier = Modifier.fillMaxSize().padding(15.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (ticketPrice.isEmpty()) {
+                                        Text(
+                                            text = "add your event ticket price",
+                                            fontSize = 13.sp,
+                                            fontFamily = sansationFontFamily,
+                                            color = Color(0xFFD1D0D0)
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Event location",
+                        fontFamily = sansationFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    BasicTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        singleLine = false,
+                        textStyle = TextStyle(
+                            fontSize = 13.sp,
+                            fontFamily = sansationFontFamily,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Black
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(66.dp)
+                            .border(1.dp, Color(0xFFD1D0D0), RoundedCornerShape(15.dp)),
+                        decorationBox = { innerTextField ->
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                modifier = Modifier.fillMaxSize().padding(15.dp)
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (location.isEmpty()) {
+                                        Text(
+                                            text = "add your event location",
                                             fontSize = 13.sp,
                                             fontFamily = sansationFontFamily,
                                             color = Color(0xFFD1D0D0)
@@ -282,7 +480,7 @@ fun EditTaskDialog(
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    DatePickerField(date = selectedDate) { selectedDate = it }
+                    DatePickerField(date = eventDate) { eventDate = it }
                 }
 
                 Spacer(modifier = Modifier.height(42.dp))
@@ -296,25 +494,65 @@ fun EditTaskDialog(
                 ) {
                     Button(
                         onClick = {
-                            if (taskTitle.isBlank()) {
-                                dialogErrorMessage = "Task title cannot be empty."
-                                return@Button
+                            Log.d("AddEventDebug", "Save Event button clicked.")
+
+                            when {
+                                name.isBlank() -> {
+                                    dialogErrorMessage = "Event title cannot be empty."
+                                    return@Button
+                                }
+                                location.isBlank() -> {
+                                    dialogErrorMessage = "Event location cannot be empty."
+                                    return@Button
+                                }
+                                eventDate.isBlank() -> {
+                                    dialogErrorMessage = "Event date must be selected."
+                                    return@Button
+                                }
+                                selectedStartTime.isBlank() -> {
+                                    dialogErrorMessage = "Start time must be selected."
+                                    return@Button
+                                }
+                                selectedEndTime.isBlank() -> {
+                                    dialogErrorMessage = "End time must be selected."
+                                    return@Button
+                                }
+                                token.isBlank() -> {
+                                    dialogErrorMessage = "Authentication error. Token is missing."
+                                    return@Button
+                                }
                             }
-                            if (token.isNotBlank()) {
-                                isLoading = true
-                                todoViewModel.updateTodo(
-                                    token = token,
-                                    todoId = taskToEdit.todoId,
-                                    taskTitle = taskTitle,
-                                    taskDescription = taskDescription.ifBlank { null },
-                                    startTime = selectedStartTime,
-                                    endTime = selectedEndTime,
-                                    date = selectedDate
-                                )
-                                onDismiss()
-                            } else {
-                                dialogErrorMessage = "Authentication error. Token is missing."
+
+                            val convertedDate = try {
+                                val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                                val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                val date = inputFormat.parse(eventDate)
+                                if (date != null) outputFormat.format(date) else eventDate
+                            } catch (e: Exception) {
+                                Log.e("AddEventDebug", "Date conversion error", e)
+                                eventDate
                             }
+
+                            Log.d("AddEventDebug", "Creating event with data:")
+                            Log.d("AddEventDebug", "Name: $name")
+                            Log.d("AddEventDebug", "Description: $description")
+                            Log.d("AddEventDebug", "Date: $convertedDate")
+                            Log.d("AddEventDebug", "Start Time: $selectedStartTime")
+                            Log.d("AddEventDebug", "End Time: $selectedEndTime")
+                            Log.d("AddEventDebug", "Location: $location")
+                            Log.d("AddEventDebug", "Cost: $cost")
+
+                            eventViewModel.createEventWithStringDatesAndImage(
+                                token = token,
+                                name = name,
+                                description = if (description.isBlank()) null else description,
+                                eventDateString = convertedDate,
+                                startTimeString = selectedStartTime,
+                                endTimeString = selectedEndTime,
+                                location = location,
+                                imageUri = selectedImageUri,
+                                cost = if (cost > 0) cost else null
+                            )
                         },
                         enabled = !isLoading,
                         modifier = Modifier.fillMaxSize(),
@@ -322,14 +560,31 @@ fun EditTaskDialog(
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
                         } else {
-                            Text("Save Changes", color = Color.White, fontFamily = sansationFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Save Event",
+                                color = Color.White,
+                                fontFamily = sansationFontFamily,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
         }
+    }
+    dialogErrorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { dialogErrorMessage = null },
+            title = { Text("Error") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { dialogErrorMessage = null }) { Text("OK") } }
+        )
     }
 }
 
@@ -502,5 +757,3 @@ private fun DatePickerField(date: String, onDateSelected: (String) -> Unit) {
         }
     }
 }
-
-

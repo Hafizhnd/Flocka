@@ -2,11 +2,10 @@ package com.example.flocka.viewmodel.todo
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.flocka.data.remote.RetrofitClient
-import com.example.flocka.data.model.CreateTodoRequest
 import com.example.flocka.data.model.TodoItem
-import com.example.flocka.data.model.UpdateTodoRequest
+import com.example.flocka.data.repository.TodoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import java.util.TreeMap
+import java.util.UUID
 
 fun Calendar.setToMidnight(): Calendar {
     this.set(Calendar.HOUR_OF_DAY, 0)
@@ -27,7 +27,9 @@ fun Calendar.setToMidnight(): Calendar {
     return this
 }
 
-class TodoViewModel : ViewModel() {
+class TodoViewModel(
+    private val todoRepository: TodoRepository
+) : ViewModel() {
 
     private val _todos = MutableStateFlow<List<TodoItem>>(emptyList())
 
@@ -49,6 +51,16 @@ class TodoViewModel : ViewModel() {
     private val groupHeaderDisplayFormat = SimpleDateFormat("EEEE, MMM dd, yyyy", Locale.getDefault())
     val taskCardDisplayDateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
     val taskCardDisplayTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    class Factory(private val todoRepository: TodoRepository) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(TodoViewModel::class.java)) {
+                @Suppress("UNCHECKED_CAST")
+                return TodoViewModel(todoRepository) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
 
     internal fun parseBackendDateString(dateStr: String?): Date? {
         if (dateStr.isNullOrBlank()) return null
@@ -87,7 +99,6 @@ class TodoViewModel : ViewModel() {
             timeString.takeIf { it.length >= 5 }?.substring(0,5) ?: ""
         }
     }
-
 
     private fun groupAndSortTodos(todos: List<TodoItem>) {
         val todayCal = Calendar.getInstance().apply { setToMidnight() }
@@ -147,23 +158,33 @@ class TodoViewModel : ViewModel() {
         _groupedTodos.value = sortedGroupedTodos
     }
 
+    private fun updateTodosInState(updater: (List<TodoItem>) -> List<TodoItem>) {
+        val updatedTodos = updater(_todos.value)
+        _todos.value = updatedTodos
+        groupAndSortTodos(updatedTodos)
+    }
+
     fun fetchTodos(token: String) {
         viewModelScope.launch {
             _errorMessage.value = null
             try {
                 Log.d("TodoViewModel", "Fetching todos with token...")
-                val response = RetrofitClient.todoApi.getTodos("Bearer $token")
-                if (response.isSuccessful && response.body()?.success == true) {
-                    val fetchedTodos = response.body()?.data ?: emptyList()
-                    _todos.value = fetchedTodos
-                    groupAndSortTodos(fetchedTodos)
-                } else {
-                    _errorMessage.value = response.body()?.message ?: "Failed to fetch todos (Code: ${response.code()})"
-                    _groupedTodos.value = emptyMap()
-                }
+                todoRepository.getTodos(token).fold(
+                    onSuccess = { fetchedTodos ->
+                        _todos.value = fetchedTodos
+                        groupAndSortTodos(fetchedTodos)
+                        Log.d("TodoViewModel", "Todos fetched successfully: ${fetchedTodos.size} items")
+                    },
+                    onFailure = { exception ->
+                        _errorMessage.value = exception.message ?: "Failed to fetch todos"
+                        _groupedTodos.value = emptyMap()
+                        Log.e("TodoViewModel", "Failed to fetch todos", exception)
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = "Network error fetching todos: ${e.message}"
+                _errorMessage.value = "Unexpected error fetching todos: ${e.message}"
                 _groupedTodos.value = emptyMap()
+                Log.e("TodoViewModel", "Unexpected error in fetchTodos", e)
             }
         }
     }
@@ -173,7 +194,8 @@ class TodoViewModel : ViewModel() {
         startTime: String, endTime: String, date: String
     ) {
         viewModelScope.launch {
-            _operationResult.value = null; _errorMessage.value = null
+            _operationResult.value = null
+            _errorMessage.value = null
             try {
                 val formattedStartTime = if (startTime.isNotBlank()) "$startTime:00" else null
                 val formattedEndTime = if (endTime.isNotBlank()) "$endTime:00" else null
@@ -185,22 +207,41 @@ class TodoViewModel : ViewModel() {
                 if (date.isNotBlank() && formattedDate == null) {
                     val err = "Invalid date format. Please use dd/MM/yyyy."
                     _errorMessage.value = err
-                    _operationResult.value = Result.failure(IllegalArgumentException(err)); return@launch
+                    _operationResult.value = Result.failure(IllegalArgumentException(err))
+                    return@launch
                 }
 
-                val request = CreateTodoRequest(taskTitle, taskDescription, formattedStartTime, formattedEndTime, formattedDate)
-                val response = RetrofitClient.todoApi.createTodo("Bearer $token", request)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _operationResult.value = Result.success(response.body()?.message ?: "Task added!")
-                    fetchTodos(token)
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to add task (Code: ${response.code()})"
-                    _errorMessage.value = errorMsg; _operationResult.value = Result.failure(Exception(errorMsg))
-                }
+                todoRepository.createTodo(
+                    token, taskTitle, taskDescription,
+                    formattedStartTime, formattedEndTime, formattedDate
+                ).fold(
+                    onSuccess = { message ->
+                        _operationResult.value = Result.success(message)
+                        Log.d("TodoViewModel", "Todo added successfully")
+                        refreshTodosFromLocal()
+                    },
+                    onFailure = { exception ->
+                        _errorMessage.value = exception.message ?: "Failed to add task"
+                        _operationResult.value = Result.failure(exception)
+                        Log.e("TodoViewModel", "Failed to add todo", exception)
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = "Network error adding task: ${e.message}"
+                _errorMessage.value = "Unexpected error adding task: ${e.message}"
                 _operationResult.value = Result.failure(e)
+                Log.e("TodoViewModel", "Unexpected error in addTodo", e)
             }
+        }
+    }
+
+    private suspend fun refreshTodosFromLocal() {
+        try {
+            val localTodos = todoRepository.getLocalTodos()
+            _todos.value = localTodos
+            groupAndSortTodos(localTodos)
+            Log.d("TodoViewModel", "UI refreshed with ${localTodos.size} local todos")
+        } catch (e: Exception) {
+            Log.e("TodoViewModel", "Failed to refresh from local", e)
         }
     }
 
@@ -209,7 +250,8 @@ class TodoViewModel : ViewModel() {
         startTime: String?, endTime: String?, date: String?
     ) {
         viewModelScope.launch {
-            _operationResult.value = null; _errorMessage.value = null
+            _operationResult.value = null
+            _errorMessage.value = null
             try {
                 val formattedStartTime = startTime?.takeIf { it.isNotBlank() }?.let { "$it:00" }
                 val formattedEndTime = endTime?.takeIf { it.isNotBlank() }?.let { "$it:00" }
@@ -217,45 +259,151 @@ class TodoViewModel : ViewModel() {
                     try { uiDisplayDateFormat.parse(it)?.let { d -> backendDateOnlyFormat.format(d) } }
                     catch (e: Exception) { null }
                 }
+
                 if (date != null && date.isNotBlank() && formattedDate == null) {
-                    val err ="Invalid date format for update. Please use dd/MM/yyyy."
+                    val err = "Invalid date format for update. Please use dd/MM/yyyy."
                     _errorMessage.value = err
-                    _operationResult.value = Result.failure(IllegalArgumentException(err)); return@launch
+                    _operationResult.value = Result.failure(IllegalArgumentException(err))
+                    return@launch
                 }
 
-                val request = UpdateTodoRequest(taskTitle, taskDescription, formattedStartTime, formattedEndTime, formattedDate)
-                val response = RetrofitClient.todoApi.updateTodo("Bearer $token", todoId, request)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _operationResult.value = Result.success(response.body()?.message ?: "Task updated!")
-                    fetchTodos(token)
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to update task (Code: ${response.code()})"
-                    _errorMessage.value = errorMsg
-                    _operationResult.value = Result.failure(Exception(errorMsg))
+                val originalTodo = _todos.value.find { it.todoId == todoId }
+
+                updateTodosInState { currentTodos ->
+                    currentTodos.map { todo ->
+                        if (todo.todoId == todoId) {
+                            todo.copy(
+                                taskTitle = taskTitle ?: todo.taskTitle,
+                                taskDescription = taskDescription ?: todo.taskDescription,
+                                startTime = formattedStartTime ?: todo.startTime,
+                                endTime = formattedEndTime ?: todo.endTime,
+                                date = formattedDate ?: todo.date,
+                                updatedAt = System.currentTimeMillis().toString()
+                            )
+                        } else {
+                            todo
+                        }
+                    }
                 }
+
+                todoRepository.updateTodo(
+                    token, todoId, taskTitle, taskDescription,
+                    formattedStartTime, formattedEndTime, formattedDate
+                ).fold(
+                    onSuccess = { message ->
+                        _operationResult.value = Result.success(message)
+                        Log.d("TodoViewModel", "Todo updated successfully")
+
+                        fetchTodos(token)
+                    },
+                    onFailure = { exception ->
+                        if (originalTodo != null) {
+                            updateTodosInState { currentTodos ->
+                                currentTodos.map { todo ->
+                                    if (todo.todoId == todoId) originalTodo else todo
+                                }
+                            }
+                        }
+
+                        _errorMessage.value = exception.message ?: "Failed to update task"
+                        _operationResult.value = Result.failure(exception)
+                        Log.e("TodoViewModel", "Failed to update todo", exception)
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = "Network error updating task: ${e.message}"
+                _errorMessage.value = "Unexpected error updating task: ${e.message}"
                 _operationResult.value = Result.failure(e)
+                Log.e("TodoViewModel", "Unexpected error in updateTodo", e)
             }
         }
     }
 
     fun deleteTodoOnCheck(token: String, todoId: String) {
         viewModelScope.launch {
-            _operationResult.value = null; _errorMessage.value = null
+            _operationResult.value = null
+            _errorMessage.value = null
             try {
-                val response = RetrofitClient.todoApi.deleteTodo("Bearer $token", todoId)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    _operationResult.value = Result.success(response.body()?.message ?: "Task deleted!")
-                    fetchTodos(token)
-                } else {
-                    val errorMsg = response.body()?.message ?: "Failed to delete task (Code: ${response.code()})"
-                    _errorMessage.value = errorMsg
-                    _operationResult.value = Result.failure(Exception(errorMsg))
+                val originalTodo = _todos.value.find { it.todoId == todoId }
+
+                updateTodosInState { currentTodos ->
+                    currentTodos.filter { it.todoId != todoId }
                 }
+
+                todoRepository.deleteTodo(token, todoId).fold(
+                    onSuccess = { message ->
+                        _operationResult.value = Result.success(message)
+                        Log.d("TodoViewModel", "Todo deleted successfully")
+
+                        fetchTodos(token)
+                    },
+                    onFailure = { exception ->
+                        if (originalTodo != null) {
+                            updateTodosInState { currentTodos ->
+                                currentTodos + originalTodo
+                            }
+                        }
+
+                        _errorMessage.value = exception.message ?: "Failed to delete task"
+                        _operationResult.value = Result.failure(exception)
+                        Log.e("TodoViewModel", "Failed to delete todo", exception)
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = "Network error deleting task: ${e.message}"
+                _errorMessage.value = "Unexpected error deleting task: ${e.message}"
                 _operationResult.value = Result.failure(e)
+                Log.e("TodoViewModel", "Unexpected error in deleteTodoOnCheck", e)
+            }
+        }
+    }
+
+    fun toggleTodoStatus(token: String, todoId: String) {
+        viewModelScope.launch {
+            _operationResult.value = null
+            _errorMessage.value = null
+            try {
+                // Store original todo for rollback if needed
+                val originalTodo = _todos.value.find { it.todoId == todoId }
+                val newStatus = !(originalTodo?.isDone ?: false)
+
+                // Immediately update UI state
+                updateTodosInState { currentTodos ->
+                    currentTodos.map { todo ->
+                        if (todo.todoId == todoId) {
+                            todo.copy(
+                                isDoneInt = if (newStatus) 1 else 0,
+                                updatedAt = System.currentTimeMillis().toString()
+                            )
+                        } else {
+                            todo
+                        }
+                    }
+                }
+
+                todoRepository.toggleTodoStatus(token, todoId).fold(
+                    onSuccess = { message ->
+                        _operationResult.value = Result.success(message)
+                        Log.d("TodoViewModel", "Todo status toggled successfully")
+
+                        fetchTodos(token)
+                    },
+                    onFailure = { exception ->
+                        if (originalTodo != null) {
+                            updateTodosInState { currentTodos ->
+                                currentTodos.map { todo ->
+                                    if (todo.todoId == todoId) originalTodo else todo
+                                }
+                            }
+                        }
+
+                        _errorMessage.value = exception.message ?: "Failed to toggle task status"
+                        _operationResult.value = Result.failure(exception)
+                        Log.e("TodoViewModel", "Failed to toggle todo status", exception)
+                    }
+                )
+            } catch (e: Exception) {
+                _errorMessage.value = "Unexpected error toggling task status: ${e.message}"
+                _operationResult.value = Result.failure(e)
+                Log.e("TodoViewModel", "Unexpected error in toggleTodoStatus", e)
             }
         }
     }

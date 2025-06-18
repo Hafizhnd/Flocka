@@ -32,6 +32,7 @@ import coil.compose.AsyncImage
 import com.example.flocka.R
 import com.example.flocka.data.model.SpaceItem
 import com.example.flocka.data.remote.RetrofitClient
+import com.example.flocka.data.repository.SpaceRepository
 import com.example.flocka.ui.components.BluePrimary
 import com.example.flocka.ui.components.OrangePrimary
 import com.example.flocka.ui.components.alexandriaFontFamily
@@ -45,10 +46,15 @@ import java.util.Locale
 @Composable
 fun WorkspaceUI(
     token: String,
-    spaceViewModel: SpaceViewModel = viewModel(),
+    spaceRepository: SpaceRepository,
     onBackClick: () -> Unit,
     onSpaceCardClick: (spaceId: String) -> Unit
 ) {
+
+    val spaceViewModel: SpaceViewModel = viewModel(
+        factory = SpaceViewModel.Factory(spaceRepository)
+    )
+
     val spaces by spaceViewModel.spaces.collectAsState()
     val errorMessage by spaceViewModel.errorMessage.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
@@ -315,14 +321,4 @@ fun SpaceCard(
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun WorkSpaceUIPreview() {
-    WorkspaceUI(
-        token = "preview_token",
-        onBackClick = {},
-        onSpaceCardClick = {}
-    )
 }

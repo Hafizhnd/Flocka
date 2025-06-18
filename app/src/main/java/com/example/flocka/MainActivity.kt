@@ -18,7 +18,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val communityRepository = AppModule.provideCommunityRepository(applicationContext)
+        val spaceRepository = AppModule.provideSpaceRepository(applicationContext)
         val quizRepository = AppModule.provideQuizRepository(applicationContext)
+        val orderRepository = AppModule.provideOrderRepository(applicationContext)
+        val todoRepository = AppModule.provideTodoRepository(applicationContext)
+        val eventRepository = AppModule.provideEventRepository(applicationContext)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -27,7 +31,11 @@ class MainActivity : ComponentActivity() {
             RootNavGraph(
                 navController = navController,
                 communityRepository = communityRepository,
-                quizRepository  = quizRepository
+                todoRepository = todoRepository,
+                spaceRepository = spaceRepository,
+                quizRepository  = quizRepository,
+                orderRepository = orderRepository,
+                eventRepository = eventRepository
             )
         }
 

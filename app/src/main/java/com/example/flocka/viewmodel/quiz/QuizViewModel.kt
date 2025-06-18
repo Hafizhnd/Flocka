@@ -35,6 +35,7 @@ class QuizViewModel(
     private val _refreshProfileTrigger = MutableStateFlow(false)
     val refreshProfileTrigger: StateFlow<Boolean> = _refreshProfileTrigger.asStateFlow()
 
+
     private val _isOfflineMode = MutableStateFlow(false)
     val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
 
@@ -51,6 +52,7 @@ class QuizViewModel(
         }
     }
 
+
     init {
         checkUnsyncedData()
     }
@@ -62,16 +64,19 @@ class QuizViewModel(
             _currentQuestion.value = null // Clear previous question
             _isOfflineMode.value = false
 
+
             try {
                 quizRepository.getQuizQuestion(token).fold(
                     onSuccess = { question ->
                         _currentQuestion.value = question
                         Log.d("QuizViewModel", "Question fetched successfully: ${question.quizId}")
+
                         checkUnsyncedData() // Check if sync happened
                     },
                     onFailure = { exception ->
                         _errorMessage.value = exception.message ?: "Failed to fetch question"
                         _isOfflineMode.value = exception.message?.contains("offline", ignoreCase = true) == true
+
                         Log.e("QuizViewModel", "Failed to fetch question", exception)
                     }
                 )
@@ -90,6 +95,7 @@ class QuizViewModel(
             _errorMessage.value = null
             _quizResult.value = null
 
+
             try {
                 quizRepository.submitQuizAnswer(token, quizId, answerGiven).fold(
                     onSuccess = { result ->
@@ -107,6 +113,7 @@ class QuizViewModel(
                     onFailure = { exception ->
                         _errorMessage.value = exception.message ?: "Failed to submit answer"
                         _isOfflineMode.value = exception.message?.contains("offline", ignoreCase = true) == true
+
                         Log.e("QuizViewModel", "Failed to submit answer", exception)
                     }
                 )

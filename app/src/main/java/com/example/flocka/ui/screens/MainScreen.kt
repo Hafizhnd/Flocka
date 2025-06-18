@@ -6,14 +6,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.flocka.viewmodel.auth.AuthViewModel
 import com.example.flocka.data.remote.RetrofitClient
 import com.example.flocka.data.repository.CommunityRepository
+
+import com.example.flocka.data.repository.EventRepository
+import com.example.flocka.data.repository.OrderRepository
 import com.example.flocka.data.repository.QuizRepository
+import com.example.flocka.data.repository.SpaceRepository
+import com.example.flocka.data.repository.TodoRepository
+
 import com.example.flocka.navigation.MainNavGraph
 import com.yourpackage.ui.components.BottomNavBar
 import com.yourpackage.ui.components.TopBar
@@ -23,7 +28,11 @@ import com.yourpackage.ui.screens.BaseScreen
 fun MainScreen(
     token: String,
     communityRepository: CommunityRepository,
+    spaceRepository: SpaceRepository,
     quizRepository: QuizRepository,
+    orderRepository: OrderRepository,
+    todoRepository: TodoRepository,
+    eventRepository: EventRepository,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val navController = rememberNavController()
@@ -73,7 +82,11 @@ fun MainScreen(
                 paddingValues = paddingValues,
                 token = token,
                 communityRepository = communityRepository,
-                quizRepository = quizRepository
+                quizRepository = quizRepository,
+                spaceRepository = spaceRepository,
+                orderRepository = orderRepository,
+                todoRepository = todoRepository,
+                eventRepository = eventRepository
             )
         }
     }

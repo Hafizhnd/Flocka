@@ -1,4 +1,4 @@
-package com.example.flocka.data.model // Or your chosen model package
+package com.example.flocka.data.model
 
 import com.google.gson.annotations.SerializedName
 
@@ -32,4 +32,14 @@ data class OrderSuccessResponse<T>(
     @SerializedName("success") val success: Boolean,
     @SerializedName("data") val data: T?,
     @SerializedName("message") val message: String? = null
+)
+
+data class OrderDetails(
+    val email: String,
+    val name: String,
+    val phone: String,
+    val type: String,
+    val duration: Int,
+    val date: String,
+    val promoCode: String
 )

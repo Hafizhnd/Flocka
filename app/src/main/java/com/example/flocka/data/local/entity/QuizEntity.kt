@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 import com.example.flocka.data.model.QuizQuestion
 import com.example.flocka.data.model.QuizResultResponseData
 
+
 @Entity(tableName = "quiz_questions")
 data class QuizEntity(
     @PrimaryKey
@@ -32,6 +33,7 @@ data class QuizEntity(
     }
 
     companion object {
+
         fun fromQuizQuestion(quizQuestion: QuizQuestion, isSynced: Boolean = true): QuizEntity {
             return QuizEntity(
                 quizId = quizQuestion.quizId,

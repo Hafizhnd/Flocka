@@ -36,13 +36,13 @@ interface QuizDao {
 
     @Query("UPDATE quiz_questions SET isUsed = 1 WHERE quizId = :quizId")
     suspend fun markQuizAsUsed(quizId: String)
-
+\
     @Query("UPDATE quiz_questions SET isSynced = 1 WHERE quizId = :quizId")
     suspend fun markQuizAsSynced(quizId: String)
 
     @Query("UPDATE quiz_results SET isSynced = 1 WHERE quizId = :quizId")
     suspend fun markQuizResultAsSynced(quizId: String)
-
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQuizResult(result: QuizResultEntity)
 
